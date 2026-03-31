@@ -1,0 +1,15 @@
+# Backend
+backend/node_modules/
+backend/data/
+backend/.env
+
+# Flutter
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+
+# General
+.DS_Store
+*.log
+.claude/
