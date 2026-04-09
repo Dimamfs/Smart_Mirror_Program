@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_mirror_app/screens/main_navigation.dart';
 import '../providers/auth_provider.dart';
 import 'home_screen.dart';
 import 'onboarding/create_household_screen.dart';
@@ -26,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Navigator.of(context).pushReplacement(MaterialPageRoute(
       builder: (_) =>
-          auth.isLoggedIn ? const HomeScreen() : const CreateHouseholdScreen(),
+          auth.isLoggedIn ? const MainNavigation() : const CreateHouseholdScreen(),
     ));
   }
 

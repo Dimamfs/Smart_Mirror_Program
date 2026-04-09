@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_mirror_app/screens/main_navigation.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'home_screen.dart';
@@ -40,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await auth.saveToken(result['token']);
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
         (_) => false,
       );
     } on ApiException catch (e) {

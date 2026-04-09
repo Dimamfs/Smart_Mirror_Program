@@ -8,7 +8,10 @@ const gmailRoutes = require('./routes/gmail');
 
 const app = express();
 
-app.use(cors()); // allow all origins in dev — lock this down before production
+// app.use(cors()); // allow all origins in dev — lock this down before production
+app.use(cors({
+    origin: ['http://localhost:8080', 'http://127.0.0.1:8080'] // Replace with your Flutter web port if using web
+}));
 app.use(express.json());
 
 // Routes
