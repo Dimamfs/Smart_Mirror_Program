@@ -34,19 +34,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() { _loading = true; _error = null; });
 
     try {
+      final email = _emailController.text.trim();
       final api = ApiService();
       await api.register(
         householdId: widget.householdId,
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
       );
       final result = await api.login(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
       );
       if (!mounted) return;
       final auth = context.read<AuthProvider>();
       await auth.saveToken(result['token']);
+      // Auto-create a profile using the part before @ as the name
+      final profileName = email.split('@').first;
+      await auth.api.createProfile(name: profileName);
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainNavigation()),

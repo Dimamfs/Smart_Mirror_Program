@@ -5,7 +5,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'add_profile_screen.dart';
 import 'profile_screen.dart';
-import 'onboarding/create_household_screen.dart';
+import 'welcome_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await context.read<AuthProvider>().logout();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const CreateHouseholdScreen()),
+      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
       (_) => false,
     );
   }

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_mirror_app/screens/main_navigation.dart';
 import '../providers/auth_provider.dart';
-import 'home_screen.dart';
-import 'onboarding/create_household_screen.dart';
+import 'welcome_screen.dart';
 
 // Shown while we check for a stored JWT. Routes to home or onboarding.
 class SplashScreen extends StatefulWidget {
@@ -27,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Navigator.of(context).pushReplacement(MaterialPageRoute(
       builder: (_) =>
-          auth.isLoggedIn ? const MainNavigation() : const CreateHouseholdScreen(),
+          auth.isLoggedIn ? const MainNavigation() : const WelcomeScreen(),
     ));
   }
 
