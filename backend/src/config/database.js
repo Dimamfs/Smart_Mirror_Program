@@ -33,6 +33,7 @@ const dbPromise = open({ filename: DB_PATH, driver: sqlite3.Database }).then(asy
       name         TEXT    NOT NULL,
       email        TEXT,
       google_sub   TEXT,
+      mirror_id    TEXT,
       created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE CASCADE
     );
@@ -46,7 +47,29 @@ const dbPromise = open({ filename: DB_PATH, driver: sqlite3.Database }).then(asy
       connected_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS active_mirror_users (
+      mirror_id  TEXT    PRIMARY KEY,
+      profile_id INTEGER NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS spotify_connections (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id       INTEGER NOT NULL UNIQUE,
+      access_token     TEXT    NOT NULL,
+      refresh_token    TEXT    NOT NULL,
+      expires_at       DATETIME NOT NULL,
+      spotify_user_id  TEXT    NOT NULL,
+      display_name     TEXT,
+      connected_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    );
   `);
+
+  // Migrations for existing databases
+  await db.run(`ALTER TABLE profiles ADD COLUMN mirror_id TEXT`).catch(() => {});
 
   return db;
 });

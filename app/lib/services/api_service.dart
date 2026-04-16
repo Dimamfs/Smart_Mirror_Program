@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api.dart';
 import '../models/household.dart';
@@ -99,6 +100,28 @@ class ApiService {
     return Profile.fromJson(_parse(res)['profile']);
   }
 
+  Future<void> deleteProfile(int profileId) async {
+    final res = await http.delete(
+      Uri.parse('$kBaseUrl/profiles/$profileId'),
+      headers: _headers,
+    );
+    _parse(res);
+  }
+
+  // ── Mirror ──────────────────────────────────────────────────────────────────
+
+  Future<Profile> setMirrorId(int profileId, String? mirrorId) async {
+    final url = '$kBaseUrl/profiles/$profileId/mirror';
+    debugPrint('[ApiService] PATCH $url body={"mirrorId": "$mirrorId"}');
+    final res = await http.patch(
+      Uri.parse(url),
+      headers: _headers,
+      body: jsonEncode({'mirrorId': mirrorId}),
+    );
+    debugPrint('[ApiService] setMirrorId response: ${res.statusCode} ${res.body}');
+    return Profile.fromJson(_parse(res)['profile']);
+  }
+
   // ── Gmail ───────────────────────────────────────────────────────────────────
 
   Future<String> getGmailConnectUrl(int profileId) async {
@@ -121,6 +144,39 @@ class ApiService {
   Future<void> disconnectGmail(int profileId) async {
     final res = await http.delete(
       Uri.parse('$kBaseUrl/profiles/$profileId/gmail'),
+      headers: _headers,
+    );
+    _parse(res);
+  }
+
+  // ── Spotify ─────────────────────────────────────────────────────────────────
+
+  Future<String> getSpotifyConnectUrl(int profileId) async {
+    debugPrint('[ApiService] GET $kBaseUrl/profiles/$profileId/spotify/connect');
+    final res = await http.get(
+      Uri.parse('$kBaseUrl/profiles/$profileId/spotify/connect'),
+      headers: _headers,
+    );
+    final url = _parse(res)['url'] as String;
+    debugPrint('[ApiService] Spotify connect URL: $url');
+    return url;
+  }
+
+  Future<Map<String, dynamic>> getSpotifyStatus(int profileId) async {
+    debugPrint('[ApiService] GET $kBaseUrl/profiles/$profileId/spotify/status');
+    final res = await http.get(
+      Uri.parse('$kBaseUrl/profiles/$profileId/spotify/status'),
+      headers: _headers,
+    );
+    final data = _parse(res) as Map<String, dynamic>;
+    debugPrint('[ApiService] Spotify status: $data');
+    return data;
+  }
+
+  Future<void> disconnectSpotify(int profileId) async {
+    debugPrint('[ApiService] DELETE $kBaseUrl/profiles/$profileId/spotify');
+    final res = await http.delete(
+      Uri.parse('$kBaseUrl/profiles/$profileId/spotify'),
       headers: _headers,
     );
     _parse(res);

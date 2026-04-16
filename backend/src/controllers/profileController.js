@@ -1,5 +1,28 @@
 const profileService = require('../services/profileService');
 
+async function setMirror(req, res, next) {
+  try {
+    const profile = await profileService.getProfile(Number(req.params.id));
+    if (profile.household_id !== req.account.householdId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const { mirrorId } = req.body;
+    const updated = await profileService.setMirrorId(profile.id, mirrorId);
+    res.json({ profile: updated });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getByMirrorId(req, res, next) {
+  try {
+    const profiles = await profileService.getProfilesByMirrorId(req.params.mirrorId);
+    res.json({ profiles });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function create(req, res, next) {
   try {
     const { name, email } = req.body;
@@ -40,4 +63,17 @@ async function getOne(req, res, next) {
   }
 }
 
-module.exports = { create, list, getOne };
+async function remove(req, res, next) {
+  try {
+    const profile = await profileService.getProfile(Number(req.params.id));
+    if (profile.household_id !== req.account.householdId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    await profileService.deleteProfile(profile.id);
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { create, list, getOne, setMirror, getByMirrorId, remove };

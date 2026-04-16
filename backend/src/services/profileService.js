@@ -19,18 +19,52 @@ async function createProfile({ householdId, name, email }) {
 async function listProfiles(householdId) {
   const db = await getDb();
   return db.all(
-    'SELECT id, household_id, name, email, created_at FROM profiles WHERE household_id = ? ORDER BY name',
+    'SELECT id, household_id, name, email, google_sub, mirror_id, created_at FROM profiles WHERE household_id = ? ORDER BY name',
     householdId
+  );
+}
+
+async function setMirrorId(profileId, mirrorId) {
+  const db = await getDb();
+  await db.run('UPDATE profiles SET mirror_id = ? WHERE id = ?', mirrorId || null, profileId);
+  return db.get('SELECT * FROM profiles WHERE id = ?', profileId);
+}
+
+async function getProfilesByMirrorId(mirrorId) {
+  const db = await getDb();
+  return db.all(
+    `SELECT p.id, p.household_id, p.name, p.email, p.google_sub, p.mirror_id, p.created_at,
+            CASE WHEN gc.profile_id IS NOT NULL THEN 1 ELSE 0 END AS gmail_connected
+     FROM profiles p
+     LEFT JOIN gmail_connections gc ON gc.profile_id = p.id
+     WHERE p.mirror_id = ?
+     ORDER BY p.name`,
+    mirrorId
   );
 }
 
 async function getProfile(id) {
   const db = await getDb();
-  const profile = await db.get('SELECT * FROM profiles WHERE id = ?', id);
+  const profile = await db.get(
+    `SELECT p.*,
+            CASE WHEN gc.profile_id IS NOT NULL THEN 1 ELSE 0 END AS gmail_connected,
+            CASE WHEN sc.profile_id IS NOT NULL THEN 1 ELSE 0 END AS spotify_connected,
+            sc.display_name AS spotify_display_name
+     FROM profiles p
+     LEFT JOIN gmail_connections   gc ON gc.profile_id = p.id
+     LEFT JOIN spotify_connections sc ON sc.profile_id = p.id
+     WHERE p.id = ?`,
+    id
+  );
   if (!profile) {
     throw Object.assign(new Error('Profile not found'), { status: 404 });
   }
   return profile;
 }
 
-module.exports = { createProfile, listProfiles, getProfile };
+async function deleteProfile(id) {
+  const db = await getDb();
+  await db.run('DELETE FROM profiles WHERE id = ?', id);
+}
+
+module.exports = { createProfile, listProfiles, getProfile, setMirrorId, getProfilesByMirrorId, deleteProfile };
