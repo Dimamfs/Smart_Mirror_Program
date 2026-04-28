@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+// Note: In a real app, you'd pass the active Profile into this screen so you know the profileId.
+// For now, we assume you'll pass it in the constructor or fetch it from a provider.
 
 class FaceSetupScreen extends StatefulWidget {
+  // Ideally, require the profile ID here:
+  // final int profileId;
+  // const FaceSetupScreen({super.key, required this.profileId});
+
   const FaceSetupScreen({super.key});
 
   @override
@@ -8,21 +17,85 @@ class FaceSetupScreen extends StatefulWidget {
 }
 
 class _FaceSetupScreenState extends State<FaceSetupScreen> {
+  CameraController? _cameraController;
   bool _isScanning = false;
   bool _isRegistered = false;
+  String? _error;
 
-  void _startScan() {
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
+
+  Future<void> _initializeCamera() async {
+    try {
+      // Get list of available cameras
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        setState(() => _error = 'No cameras found on device.');
+        return;
+      }
+
+      // Try to find the front-facing camera
+      final frontCamera = cameras.firstWhere(
+        (cam) => cam.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      _cameraController = CameraController(
+        frontCamera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
+
+      await _cameraController!.initialize();
+      if (mounted) setState(() {});
+    } catch (e) {
+      setState(() => _error = 'Error initializing camera: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _startScan() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized)
+      return;
+
     setState(() {
       _isScanning = true;
+      _error = null;
     });
 
-    // We fake a 3-second scanning process so you can see the UI change!
-    Future.delayed(const Duration(seconds: 3), () {
+    try {
+      // 1. Take the picture
+      final XFile image = await _cameraController!.takePicture();
+
+      // 2. Upload to backend (Assuming profile ID is 1 for testing. You MUST pass the actual profile ID here)
+      final api = context.read<AuthProvider>().api;
+      await api.uploadFace(
+          1, image.path); // TODO: Replace '1' with actual profile.id
+
+      if (!mounted) return;
       setState(() {
-        _isScanning = false;
         _isRegistered = true;
       });
-    });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+        });
+      }
+    }
   }
 
   @override
@@ -36,56 +109,64 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
           const Text(
             'Biometric Setup',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 8),
           const Text(
             'Register your face to load your personalized mirror profile and bypass security alerts.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: Colors.white54),
           ),
           const SizedBox(height: 48),
 
-          // 1. The Camera Placeholder area
+          // 1. The Camera View area
           Container(
             height: 300,
             decoration: BoxDecoration(
-              color: Colors.black12,
+              color: Colors.white10,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _isRegistered ? Colors.green : Colors.grey, 
-                width: 2
-              ),
+                  color: _isRegistered ? Colors.green : Colors.white24,
+                  width: 2),
             ),
+            clipBehavior: Clip
+                .hardEdge, // ensures camera preview respects rounded corners
             child: Center(
-              child: _isScanning
-                  ? const CircularProgressIndicator() // Shows a loading spinner
-                  : Icon(
-                      _isRegistered ? Icons.check_circle : Icons.camera_alt,
-                      size: 80,
-                      color: _isRegistered ? Colors.green : Colors.grey,
-                    ),
+              child: _buildCameraPreview(),
             ),
           ),
+
+          if (_error != null) ...[
+            const SizedBox(height: 16),
+            Text(_error!,
+                style: const TextStyle(color: Colors.redAccent),
+                textAlign: TextAlign.center),
+          ],
+
           const SizedBox(height: 32),
 
           // 2. The Action Button
           ElevatedButton.icon(
-            // If it's currently scanning OR already registered, disable the button (null)
-            onPressed: _isScanning || _isRegistered ? null : _startScan,
+            onPressed: _isScanning || _isRegistered || _cameraController == null
+                ? null
+                : _startScan,
             icon: const Icon(Icons.face_retouching_natural),
             label: Text(_isScanning
-                ? 'Scanning Face...'
+                ? 'Uploading Face...'
                 : _isRegistered
                     ? 'Registration Complete'
                     : 'Start Camera Scan'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              textStyle: const TextStyle(fontSize: 18),
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              textStyle:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
 
-          // 3. A reset button that only shows up AFTER you register
+          // 3. Reset button
           if (_isRegistered) ...[
             const SizedBox(height: 16),
             TextButton(
@@ -94,11 +175,29 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
                   _isRegistered = false;
                 });
               },
-              child: const Text('Retake Scan'),
+              child: const Text('Retake Scan',
+                  style: TextStyle(color: Colors.white54)),
             )
           ]
         ],
       ),
     );
+  }
+
+  Widget _buildCameraPreview() {
+    if (_isRegistered) {
+      return const Icon(Icons.check_circle, size: 80, color: Colors.green);
+    }
+
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return const CircularProgressIndicator(color: Colors.white);
+    }
+
+    if (_isScanning) {
+      return const CircularProgressIndicator(color: Colors.white);
+    }
+
+    // Embed the live camera view
+    return CameraPreview(_cameraController!);
   }
 }

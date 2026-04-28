@@ -1,45 +1,54 @@
-const { getDb } = require('../config/database');
+const { getDb } = require("../config/database");
 
 async function createProfile({ householdId, name, email }) {
   const db = await getDb();
 
-  const household = await db.get('SELECT id FROM households WHERE id = ?', householdId);
+  const household = await db.get(
+    "SELECT id FROM households WHERE id = ?",
+    householdId,
+  );
   if (!household) {
-    throw Object.assign(new Error('Household not found'), { status: 404 });
+    throw Object.assign(new Error("Household not found"), { status: 404 });
   }
 
   const result = await db.run(
-    'INSERT INTO profiles (household_id, name, email) VALUES (?, ?, ?)',
-    householdId, name, email || null
+    "INSERT INTO profiles (household_id, name, email) VALUES (?, ?, ?)",
+    householdId,
+    name,
+    email || null,
   );
 
-  return db.get('SELECT * FROM profiles WHERE id = ?', result.lastID);
+  return db.get("SELECT * FROM profiles WHERE id = ?", result.lastID);
 }
 
 async function listProfiles(householdId) {
   const db = await getDb();
   return db.all(
-    'SELECT id, household_id, name, email, google_sub, mirror_id, created_at FROM profiles WHERE household_id = ? ORDER BY name',
-    householdId
+    "SELECT id, household_id, name, email, google_sub, mirror_id, face_filename, created_at FROM profiles WHERE household_id = ? ORDER BY name",
+    householdId,
   );
 }
 
 async function setMirrorId(profileId, mirrorId) {
   const db = await getDb();
-  await db.run('UPDATE profiles SET mirror_id = ? WHERE id = ?', mirrorId || null, profileId);
-  return db.get('SELECT * FROM profiles WHERE id = ?', profileId);
+  await db.run(
+    "UPDATE profiles SET mirror_id = ? WHERE id = ?",
+    mirrorId || null,
+    profileId,
+  );
+  return db.get("SELECT * FROM profiles WHERE id = ?", profileId);
 }
 
 async function getProfilesByMirrorId(mirrorId) {
   const db = await getDb();
   return db.all(
-    `SELECT p.id, p.household_id, p.name, p.email, p.google_sub, p.mirror_id, p.created_at,
+    `SELECT p.id, p.household_id, p.name, p.email, p.google_sub, p.mirror_id, p.face_filename, p.created_at,
             CASE WHEN gc.profile_id IS NOT NULL THEN 1 ELSE 0 END AS gmail_connected
      FROM profiles p
      LEFT JOIN gmail_connections gc ON gc.profile_id = p.id
      WHERE p.mirror_id = ?
      ORDER BY p.name`,
-    mirrorId
+    mirrorId,
   );
 }
 
@@ -54,17 +63,24 @@ async function getProfile(id) {
      LEFT JOIN gmail_connections   gc ON gc.profile_id = p.id
      LEFT JOIN spotify_connections sc ON sc.profile_id = p.id
      WHERE p.id = ?`,
-    id
+    id,
   );
   if (!profile) {
-    throw Object.assign(new Error('Profile not found'), { status: 404 });
+    throw Object.assign(new Error("Profile not found"), { status: 404 });
   }
   return profile;
 }
 
 async function deleteProfile(id) {
   const db = await getDb();
-  await db.run('DELETE FROM profiles WHERE id = ?', id);
+  await db.run("DELETE FROM profiles WHERE id = ?", id);
 }
 
-module.exports = { createProfile, listProfiles, getProfile, setMirrorId, getProfilesByMirrorId, deleteProfile };
+module.exports = {
+  createProfile,
+  listProfiles,
+  getProfile,
+  setMirrorId,
+  getProfilesByMirrorId,
+  deleteProfile,
+};

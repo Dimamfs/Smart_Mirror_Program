@@ -35,7 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: const Text('Delete profile', style: TextStyle(color: Colors.white)),
+        title:
+            const Text('Delete profile', style: TextStyle(color: Colors.white)),
         content: Text(
           'Delete "${_profile.name}"? This cannot be undone.',
           style: const TextStyle(color: Colors.white70),
@@ -43,11 +44,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+            child:
+                const Text('Delete', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -66,7 +69,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadMessages() async {
-    setState(() { _loadingMessages = true; _error = null; });
+    setState(() {
+      _loadingMessages = true;
+      _error = null;
+    });
     try {
       final msgs = await _api.getMessages(_profile.id);
       if (mounted) setState(() => _messages = msgs);
@@ -80,13 +86,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _refreshProfile() async {
     try {
       final updated = await _api.getProfile(_profile.id);
-      debugPrint('[Profile] refreshed id=${updated.id} email=${updated.email} googleSub=${updated.googleSub} hasGmail=${updated.hasGmail}');
+      debugPrint(
+          '[Profile] refreshed id=${updated.id} email=${updated.email} googleSub=${updated.googleSub} hasGmail=${updated.hasGmail}');
       if (mounted) {
         setState(() => _profile = updated);
         if (_profile.hasGmail) _loadMessages();
       }
     } on ApiException catch (e) {
-      debugPrint('[Profile] refresh ApiException: ${e.message} (${e.statusCode})');
+      debugPrint(
+          '[Profile] refresh ApiException: ${e.message} (${e.statusCode})');
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       debugPrint('[Profile] refresh error: $e');
@@ -120,8 +128,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.white54)),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -159,8 +167,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.white54)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -213,13 +221,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: CircleAvatar(
               radius: 48,
               backgroundColor: Colors.white12,
-              child: Text(
-                _profile.name[0].toUpperCase(),
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold),
-              ),
+              backgroundImage: _profile.faceUrl != null
+                  ? NetworkImage(_profile.faceUrl!)
+                  : null,
+              child: _profile.faceUrl == null
+                  ? Text(
+                      _profile.name[0].toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold),
+                    )
+                  : null,
             ),
           ),
           const SizedBox(height: 16),
@@ -348,8 +361,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CircularProgressIndicator(color: Colors.white),
               ))
             else if (_error != null)
-              Text(_error!,
-                  style: const TextStyle(color: Colors.redAccent))
+              Text(_error!, style: const TextStyle(color: Colors.redAccent))
             else if (_messages.isEmpty)
               const Text('No unread messages.',
                   style: TextStyle(color: Colors.white54))
@@ -399,26 +411,34 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
     final mirrorId = _controller.text.trim();
     final profileId = widget.profile.id;
 
-    debugPrint('[MirrorLink] Save pressed — profileId=$profileId mirrorId="$mirrorId"');
+    debugPrint(
+        '[MirrorLink] Save pressed — profileId=$profileId mirrorId="$mirrorId"');
 
     if (mirrorId.isEmpty) {
       setState(() => _error = 'Mirror ID cannot be empty');
       return;
     }
 
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       debugPrint('[MirrorLink] Sending PATCH /api/profiles/$profileId/mirror');
       final updated = await widget.api.setMirrorId(profileId, mirrorId);
       debugPrint('[MirrorLink] Success — profile updated: ${updated.mirrorId}');
       widget.onUpdated(updated);
-      if (mounted) setState(() { _editing = false; });
+      if (mounted)
+        setState(() {
+          _editing = false;
+        });
     } on ApiException catch (e) {
       debugPrint('[MirrorLink] ApiException: ${e.message} (${e.statusCode})');
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       debugPrint('[MirrorLink] Unexpected error: $e');
-      if (mounted) setState(() => _error = 'Connection error — is the backend running?');
+      if (mounted)
+        setState(() => _error = 'Connection error — is the backend running?');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -495,13 +515,16 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+              Text(_error!,
+                  style:
+                      const TextStyle(color: Colors.redAccent, fontSize: 13)),
             ],
             const SizedBox(height: 12),
             Row(
               children: [
                 TextButton(
-                  onPressed: _loading ? null : () => setState(() => _editing = false),
+                  onPressed:
+                      _loading ? null : () => setState(() => _editing = false),
                   child: const Text('Cancel',
                       style: TextStyle(color: Colors.white54)),
                 ),
@@ -552,7 +575,10 @@ class _SpotifySectionState extends State<_SpotifySection> {
   String? _error;
 
   Future<void> _connect() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final profileId = widget.profile.id;
       debugPrint('[Spotify] connecting profileId=$profileId');
@@ -580,8 +606,8 @@ class _SpotifySectionState extends State<_SpotifySection> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.white54)),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -598,7 +624,8 @@ class _SpotifySectionState extends State<_SpotifySection> {
       if (done == true) {
         // Reload profile to pick up spotify_connected + spotify_display_name
         final updated = await widget.api.getProfile(widget.profile.id);
-        debugPrint('[Spotify] profile reload: spotifyConnected=${updated.spotifyConnected} displayName=${updated.spotifyDisplayName}');
+        debugPrint(
+            '[Spotify] profile reload: spotifyConnected=${updated.spotifyConnected} displayName=${updated.spotifyDisplayName}');
         if (mounted) widget.onUpdated(updated);
       }
     } on ApiException catch (e) {
@@ -606,7 +633,8 @@ class _SpotifySectionState extends State<_SpotifySection> {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       debugPrint('[Spotify] error: $e');
-      if (mounted) setState(() => _error = 'Connection error — is the backend running?');
+      if (mounted)
+        setState(() => _error = 'Connection error — is the backend running?');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -626,8 +654,8 @@ class _SpotifySectionState extends State<_SpotifySection> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.white54)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -639,7 +667,10 @@ class _SpotifySectionState extends State<_SpotifySection> {
     );
     if (confirm != true) return;
 
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       await widget.api.disconnectSpotify(widget.profile.id);
       final updated = await widget.api.getProfile(widget.profile.id);
@@ -667,12 +698,14 @@ class _SpotifySectionState extends State<_SpotifySection> {
             children: [
               // Spotify logo colour dot
               Container(
-                width: 20, height: 20,
+                width: 20,
+                height: 20,
                 decoration: const BoxDecoration(
                   color: Color(0xFF1DB954),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.music_note, color: Colors.white, size: 13),
+                child:
+                    const Icon(Icons.music_note, color: Colors.white, size: 13),
               ),
               const SizedBox(width: 8),
               const Text('Spotify',
@@ -683,7 +716,8 @@ class _SpotifySectionState extends State<_SpotifySection> {
               const Spacer(),
               if (_loading)
                 const SizedBox(
-                    width: 18, height: 18,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white54))
               else if (connected)
@@ -715,7 +749,8 @@ class _SpotifySectionState extends State<_SpotifySection> {
             if (_error != null) ...[
               const SizedBox(height: 6),
               Text(_error!,
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+                  style:
+                      const TextStyle(color: Colors.redAccent, fontSize: 12)),
             ],
             const SizedBox(height: 16),
             SizedBox(

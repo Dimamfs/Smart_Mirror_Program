@@ -3,4 +3,5 @@
 // Physical device: use your machine's local IP (e.g. 192.168.1.x).
 // const String kBaseUrl = 'http://localhost:3000/api';
 
-const String kBaseUrl = 'http://127.0.0.1:3000/api';
+// const String kBaseUrl = 'http://127.0.0.1:3000/api';
+const String kBaseUrl = 'http://10.0.2.2:3000/api';

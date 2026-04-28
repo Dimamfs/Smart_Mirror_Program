@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:smart_mirror_app/screens/main_navigation.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
-import '../home_screen.dart';
 
 // Step 2 of onboarding: create an account linked to the new household.
 class RegisterScreen extends StatefulWidget {
@@ -31,7 +30,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
     try {
       final email = _emailController.text.trim();
@@ -57,9 +59,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         (_) => false,
       );
     } on ApiException catch (e) {
-      setState(() { _error = e.message; });
+      setState(() {
+        _error = e.message;
+      });
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
     }
   }
 
@@ -122,7 +129,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+                  Text(_error!,
+                      style: const TextStyle(color: Colors.redAccent)),
                 ],
                 const Spacer(),
                 SizedBox(

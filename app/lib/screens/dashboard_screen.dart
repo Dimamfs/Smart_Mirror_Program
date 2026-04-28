@@ -12,7 +12,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _showClock = true;
   bool _showWeather = true;
   bool _showCalendar = false;
-  bool _showNews = false;
+  final bool _showNews = false;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: const Text('Clock'),
             subtitle: const Text('Display the current time and date.'),
             value: _showClock,
-            activeColor: Colors.blueAccent,
+            activeThumbColor: Colors.blueAccent,
             onChanged: (bool value) {
               setState(() {
                 _showClock = value;
@@ -51,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: const Text('Weather'),
             subtitle: const Text('Show local temperature and forecast.'),
             value: _showWeather,
-            activeColor: Colors.blueAccent,
+            activeThumbColor: Colors.blueAccent,
             onChanged: (bool value) {
               setState(() {
                 _showWeather = value;
@@ -66,7 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: const Text('Calendar'),
             subtitle: const Text('Sync upcoming events and reminders.'),
             value: _showCalendar,
-            activeColor: Colors.blueAccent,
+            activeThumbColor: Colors.blueAccent,
             onChanged: (bool value) {
               setState(() {
                 _showCalendar = value;

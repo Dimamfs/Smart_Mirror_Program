@@ -108,6 +108,31 @@ class ApiService {
     _parse(res);
   }
 
+  // ── Face Setup ──────────────────────────────────────────────────────────────
+
+  Future<void> uploadFace(int profileId, String imagePath) async {
+    final url = '$kBaseUrl/profiles/$profileId/face';
+    debugPrint('[ApiService] POST $url');
+
+    var request = http.MultipartRequest('POST', Uri.parse(url));
+
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    request.files.add(await http.MultipartFile.fromPath('face', imagePath));
+
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      debugPrint('[ApiService] Face uploaded successfully');
+    } else {
+      final msg = jsonDecode(response.body)['error'] ?? 'Failed to upload face';
+      throw ApiException(msg, response.statusCode);
+    }
+  }
+
   // ── Mirror ──────────────────────────────────────────────────────────────────
 
   Future<Profile> setMirrorId(int profileId, String? mirrorId) async {
@@ -118,7 +143,8 @@ class ApiService {
       headers: _headers,
       body: jsonEncode({'mirrorId': mirrorId}),
     );
-    debugPrint('[ApiService] setMirrorId response: ${res.statusCode} ${res.body}');
+    debugPrint(
+        '[ApiService] setMirrorId response: ${res.statusCode} ${res.body}');
     return Profile.fromJson(_parse(res)['profile']);
   }
 
@@ -152,7 +178,8 @@ class ApiService {
   // ── Spotify ─────────────────────────────────────────────────────────────────
 
   Future<String> getSpotifyConnectUrl(int profileId) async {
-    debugPrint('[ApiService] GET $kBaseUrl/profiles/$profileId/spotify/connect');
+    debugPrint(
+        '[ApiService] GET $kBaseUrl/profiles/$profileId/spotify/connect');
     final res = await http.get(
       Uri.parse('$kBaseUrl/profiles/$profileId/spotify/connect'),
       headers: _headers,

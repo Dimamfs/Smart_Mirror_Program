@@ -26,7 +26,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final profiles = await context.read<AuthProvider>().api.listProfiles();
       if (mounted) setState(() => _profiles = profiles);
@@ -89,7 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white));
+      return const Center(
+          child: CircularProgressIndicator(color: Colors.white));
     }
     if (_error != null) {
       return Center(
@@ -156,13 +160,18 @@ class _ProfileCard extends StatelessWidget {
             CircleAvatar(
               radius: 28,
               backgroundColor: Colors.white12,
-              child: Text(
-                profile.name[0].toUpperCase(),
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold),
-              ),
+              backgroundImage: profile.faceUrl != null
+                  ? NetworkImage(profile.faceUrl!)
+                  : null,
+              child: profile.faceUrl == null
+                  ? Text(
+                      profile.name[0].toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold),
+                    )
+                  : null, // Hide the letter if we have an image
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -179,7 +188,8 @@ class _ProfileCard extends StatelessWidget {
                   if (profile.email != null)
                     Text(
                       profile.email!,
-                      style: const TextStyle(color: Colors.white54, fontSize: 13),
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 13),
                     )
                   else
                     const Text(

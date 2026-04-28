@@ -1,10 +1,11 @@
-const profileService = require('../services/profileService');
+const { getDb } = require("../config/database");
+const profileService = require("../services/profileService");
 
 async function setMirror(req, res, next) {
   try {
     const profile = await profileService.getProfile(Number(req.params.id));
     if (profile.household_id !== req.account.householdId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: "Forbidden" });
     }
     const { mirrorId } = req.body;
     const updated = await profileService.setMirrorId(profile.id, mirrorId);
@@ -16,7 +17,9 @@ async function setMirror(req, res, next) {
 
 async function getByMirrorId(req, res, next) {
   try {
-    const profiles = await profileService.getProfilesByMirrorId(req.params.mirrorId);
+    const profiles = await profileService.getProfilesByMirrorId(
+      req.params.mirrorId,
+    );
     res.json({ profiles });
   } catch (err) {
     next(err);
@@ -29,10 +32,14 @@ async function create(req, res, next) {
     const householdId = req.account.householdId;
 
     if (!name || !name.trim()) {
-      return res.status(400).json({ error: 'Profile name is required' });
+      return res.status(400).json({ error: "Profile name is required" });
     }
 
-    const profile = await profileService.createProfile({ householdId, name: name.trim(), email });
+    const profile = await profileService.createProfile({
+      householdId,
+      name: name.trim(),
+      email,
+    });
     res.status(201).json({ profile });
   } catch (err) {
     next(err);
@@ -54,7 +61,7 @@ async function getOne(req, res, next) {
     const profile = await profileService.getProfile(Number(req.params.id));
 
     if (profile.household_id !== req.account.householdId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     res.json({ profile });
@@ -67,7 +74,7 @@ async function remove(req, res, next) {
   try {
     const profile = await profileService.getProfile(Number(req.params.id));
     if (profile.household_id !== req.account.householdId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: "Forbidden" });
     }
     await profileService.deleteProfile(profile.id);
     res.json({ success: true });
@@ -76,4 +83,46 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { create, list, getOne, setMirror, getByMirrorId, remove };
+async function uploadFace(req, res, next) {
+  try {
+    // 1. Verify profile exists and belongs to this user
+    const profile = await profileService.getProfile(Number(req.params.id));
+    if (profile.household_id !== req.account.householdId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // 2. Ensure the file was actually uploaded
+    if (!req.file) {
+      return res.status(400).json({ error: "No face image uploaded" });
+    }
+
+    console.log(
+      `[Backend] Face image saved to ${req.file.path} for profile ${profile.id}`,
+    );
+
+    const db = await getDb();
+    await db.run(
+      "UPDATE profiles SET face_filename = ? WHERE id = ?",
+      req.file.filename,
+      profile.id,
+    );
+
+    // 3. Return success to the mobile app
+    res.json({
+      message: "Face registered successfully",
+      filePath: req.file.path,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  create,
+  list,
+  getOne,
+  setMirror,
+  getByMirrorId,
+  remove,
+  uploadFace,
+};

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:smart_mirror_app/screens/main_navigation.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
-import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,7 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
     try {
       final result = await ApiService().login(
@@ -45,9 +47,14 @@ class _LoginScreenState extends State<LoginScreen> {
         (_) => false,
       );
     } on ApiException catch (e) {
-      setState(() { _error = e.message; });
+      setState(() {
+        _error = e.message;
+      });
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
     }
   }
 
@@ -64,7 +71,8 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 48),
-                const Icon(Icons.wb_sunny_outlined, size: 40, color: Colors.white),
+                const Icon(Icons.wb_sunny_outlined,
+                    size: 40, color: Colors.white),
                 const SizedBox(height: 24),
                 const Text(
                   'Welcome back',
@@ -80,8 +88,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.emailAddress,
                   decoration: _inputDec('Email'),
-                  validator: (v) =>
-                      (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                  validator: (v) => (v == null || !v.contains('@'))
+                      ? 'Enter a valid email'
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -102,7 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+                  Text(_error!,
+                      style: const TextStyle(color: Colors.redAccent)),
                 ],
                 const Spacer(),
                 SizedBox(
