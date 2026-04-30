@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Profile {
   final int id;
   final int householdId;
@@ -9,6 +11,7 @@ class Profile {
   final String createdAt;
   final bool spotifyConnected;
   final String? spotifyDisplayName;
+  final Map<String, dynamic>? widgetsConfig;
 
   Profile({
     required this.id,
@@ -21,12 +24,15 @@ class Profile {
     required this.createdAt,
     this.spotifyConnected = false,
     this.spotifyDisplayName,
+    this.widgetsConfig,
   });
 
   bool get hasGmail => email != null && googleSub != null;
   bool get hasSpotify => spotifyConnected;
   bool get hasMirror => mirrorId != null && mirrorId!.isNotEmpty;
 
+  // Assuming you are running on an Android emulator.
+  // Change 10.0.2.2 to localhost for web/iOS, or your computer's local IP for physical devices.
   String? get faceUrl =>
       faceFilename != null ? 'http://10.0.2.2:3000/faces/$faceFilename' : null;
 
@@ -42,5 +48,9 @@ class Profile {
         spotifyConnected:
             json['spotify_connected'] == true || json['spotify_connected'] == 1,
         spotifyDisplayName: json['spotify_display_name'],
+        // This is where jsonDecode is used!
+        widgetsConfig: json['widgets_config'] != null
+            ? jsonDecode(json['widgets_config'])
+            : null,
       );
 }

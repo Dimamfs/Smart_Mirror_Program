@@ -108,6 +108,18 @@ class ApiService {
     _parse(res);
   }
 
+  Future<Profile> updateWidgets(
+      int profileId, Map<String, bool> widgets) async {
+    final url = '$kBaseUrl/profiles/$profileId/widgets';
+    debugPrint('[ApiService] PATCH $url');
+    final res = await http.patch(
+      Uri.parse(url),
+      headers: _headers,
+      body: jsonEncode({'widgets': widgets}),
+    );
+    return Profile.fromJson(_parse(res)['profile']);
+  }
+
   // ── Face Setup ──────────────────────────────────────────────────────────────
 
   Future<void> uploadFace(int profileId, String imagePath) async {

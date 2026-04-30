@@ -2,14 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-// Note: In a real app, you'd pass the active Profile into this screen so you know the profileId.
-// For now, we assume you'll pass it in the constructor or fetch it from a provider.
+import '../models/profile.dart';
 
 class FaceSetupScreen extends StatefulWidget {
-  // Ideally, require the profile ID here:
-  // final int profileId;
-  // const FaceSetupScreen({super.key, required this.profileId});
-
   const FaceSetupScreen({super.key});
 
   @override
@@ -22,22 +17,49 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   bool _isRegistered = false;
   String? _error;
 
+  // State variables for profile selection
+  List<Profile> _profiles = [];
+  Profile? _selectedProfile;
+  bool _isLoadingProfiles = true;
+
   @override
   void initState() {
     super.initState();
+    _loadProfiles();
     _initializeCamera();
+  }
+
+  Future<void> _loadProfiles() async {
+    try {
+      final api = context.read<AuthProvider>().api;
+      final profiles = await api.listProfiles();
+      if (mounted) {
+        setState(() {
+          _profiles = profiles;
+          if (_profiles.isNotEmpty) {
+            _selectedProfile = _profiles.first;
+          }
+          _isLoadingProfiles = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load profiles: $e';
+          _isLoadingProfiles = false;
+        });
+      }
+    }
   }
 
   Future<void> _initializeCamera() async {
     try {
-      // Get list of available cameras
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         setState(() => _error = 'No cameras found on device.');
         return;
       }
 
-      // Try to find the front-facing camera
       final frontCamera = cameras.firstWhere(
         (cam) => cam.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
@@ -63,8 +85,11 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   }
 
   Future<void> _startScan() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized)
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _selectedProfile == null) {
       return;
+    }
 
     setState(() {
       _isScanning = true;
@@ -72,13 +97,11 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
     });
 
     try {
-      // 1. Take the picture
       final XFile image = await _cameraController!.takePicture();
-
-      // 2. Upload to backend (Assuming profile ID is 1 for testing. You MUST pass the actual profile ID here)
       final api = context.read<AuthProvider>().api;
-      await api.uploadFace(
-          1, image.path); // TODO: Replace '1' with actual profile.id
+
+      // Upload using the dynamically selected profile ID
+      await api.uploadFace(_selectedProfile!.id, image.path);
 
       if (!mounted) return;
       setState(() {
@@ -114,13 +137,53 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Register your face to load your personalized mirror profile and bypass security alerts.',
+            'Select your profile and register your face to personalize the mirror and bypass security alerts.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white54),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 24),
 
-          // 1. The Camera View area
+          // Profile Selector Dropdown
+          if (_isLoadingProfiles)
+            const Center(child: CircularProgressIndicator(color: Colors.white))
+          else if (_profiles.isEmpty)
+            const Text('No profiles found. Please create one first.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.redAccent))
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<Profile>(
+                  value: _selectedProfile,
+                  dropdownColor: Colors.grey[900],
+                  isExpanded: true,
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  items: _profiles.map((profile) {
+                    return DropdownMenuItem<Profile>(
+                      value: profile,
+                      child: Text(profile.name),
+                    );
+                  }).toList(),
+                  onChanged: (Profile? newValue) {
+                    setState(() {
+                      _selectedProfile = newValue;
+                      _isRegistered = false; // Reset status if profile changes
+                    });
+                  },
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 24),
+
+          // Camera View area
           Container(
             height: 300,
             decoration: BoxDecoration(
@@ -130,8 +193,7 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
                   color: _isRegistered ? Colors.green : Colors.white24,
                   width: 2),
             ),
-            clipBehavior: Clip
-                .hardEdge, // ensures camera preview respects rounded corners
+            clipBehavior: Clip.hardEdge,
             child: Center(
               child: _buildCameraPreview(),
             ),
@@ -146,9 +208,11 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
 
           const SizedBox(height: 32),
 
-          // 2. The Action Button
           ElevatedButton.icon(
-            onPressed: _isScanning || _isRegistered || _cameraController == null
+            onPressed: _isScanning ||
+                    _isRegistered ||
+                    _cameraController == null ||
+                    _selectedProfile == null
                 ? null
                 : _startScan,
             icon: const Icon(Icons.face_retouching_natural),
@@ -166,7 +230,6 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
             ),
           ),
 
-          // 3. Reset button
           if (_isRegistered) ...[
             const SizedBox(height: 16),
             TextButton(
@@ -197,7 +260,6 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
       return const CircularProgressIndicator(color: Colors.white);
     }
 
-    // Embed the live camera view
     return CameraPreview(_cameraController!);
   }
 }

@@ -24,7 +24,7 @@ async function createProfile({ householdId, name, email }) {
 async function listProfiles(householdId) {
   const db = await getDb();
   return db.all(
-    "SELECT id, household_id, name, email, google_sub, mirror_id, face_filename, created_at FROM profiles WHERE household_id = ? ORDER BY name",
+    "SELECT id, household_id, name, email, google_sub, mirror_id, face_filename, widgets_config, created_at FROM profiles WHERE household_id = ? ORDER BY name",
     householdId,
   );
 }
@@ -42,7 +42,7 @@ async function setMirrorId(profileId, mirrorId) {
 async function getProfilesByMirrorId(mirrorId) {
   const db = await getDb();
   return db.all(
-    `SELECT p.id, p.household_id, p.name, p.email, p.google_sub, p.mirror_id, p.face_filename, p.created_at,
+    `SELECT p.id, p.household_id, p.name, p.email, p.google_sub, p.mirror_id, p.face_filename, p.widgets_config, p.created_at,
             CASE WHEN gc.profile_id IS NOT NULL THEN 1 ELSE 0 END AS gmail_connected
      FROM profiles p
      LEFT JOIN gmail_connections gc ON gc.profile_id = p.id
@@ -76,6 +76,21 @@ async function deleteProfile(id) {
   await db.run("DELETE FROM profiles WHERE id = ?", id);
 }
 
+// --- NEW FUNCTION: Update Widgets ---
+async function updateWidgets(profileId, widgetsConfig) {
+  const db = await getDb();
+  // Stringify the JSON object to store it in SQLite
+  const jsonString = JSON.stringify(widgetsConfig);
+
+  await db.run(
+    "UPDATE profiles SET widgets_config = ? WHERE id = ?",
+    jsonString,
+    profileId,
+  );
+
+  return getProfile(profileId); // Return the updated profile
+}
+
 module.exports = {
   createProfile,
   listProfiles,
@@ -83,4 +98,5 @@ module.exports = {
   setMirrorId,
   getProfilesByMirrorId,
   deleteProfile,
+  updateWidgets,
 };

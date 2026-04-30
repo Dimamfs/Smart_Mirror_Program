@@ -63,10 +63,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _error = e.message;
       });
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
         });
+      }
     }
   }
 

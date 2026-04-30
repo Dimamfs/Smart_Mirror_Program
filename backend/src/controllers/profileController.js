@@ -117,6 +117,23 @@ async function uploadFace(req, res, next) {
   }
 }
 
+// --- NEW FUNCTION: Update Widgets ---
+async function updateWidgets(req, res, next) {
+  try {
+    const profile = await profileService.getProfile(Number(req.params.id));
+    // Security check
+    if (profile.household_id !== req.account.householdId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const { widgets } = req.body;
+    const updated = await profileService.updateWidgets(profile.id, widgets);
+    res.json({ profile: updated });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   create,
   list,
@@ -125,4 +142,5 @@ module.exports = {
   getByMirrorId,
   remove,
   uploadFace,
+  updateWidgets,
 };

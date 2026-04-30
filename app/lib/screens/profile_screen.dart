@@ -428,17 +428,19 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
       final updated = await widget.api.setMirrorId(profileId, mirrorId);
       debugPrint('[MirrorLink] Success — profile updated: ${updated.mirrorId}');
       widget.onUpdated(updated);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _editing = false;
         });
+      }
     } on ApiException catch (e) {
       debugPrint('[MirrorLink] ApiException: ${e.message} (${e.statusCode})');
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       debugPrint('[MirrorLink] Unexpected error: $e');
-      if (mounted)
+      if (mounted) {
         setState(() => _error = 'Connection error — is the backend running?');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -633,8 +635,9 @@ class _SpotifySectionState extends State<_SpotifySection> {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       debugPrint('[Spotify] error: $e');
-      if (mounted)
+      if (mounted) {
         setState(() => _error = 'Connection error — is the backend running?');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

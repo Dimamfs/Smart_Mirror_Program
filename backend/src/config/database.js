@@ -78,6 +78,10 @@ const dbPromise = open({ filename: DB_PATH, driver: sqlite3.Database }).then(
     await db
       .run(`ALTER TABLE profiles ADD COLUMN face_filename TEXT`)
       .catch(() => {});
+    // Add the new JSON config column
+    await db
+      .run(`ALTER TABLE profiles ADD COLUMN widgets_config TEXT`)
+      .catch(() => {});
 
     return db;
   },

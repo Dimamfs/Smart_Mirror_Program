@@ -30,7 +30,7 @@ router.get("/:id", authenticate, profileController.getOne);
 // Delete profile
 router.delete("/:id", authenticate, profileController.remove);
 
-// Face Setup Upload (NEW ENDPOINT)
+// Face Setup Upload
 router.post(
   "/:id/face",
   authenticate,
@@ -40,6 +40,9 @@ router.post(
 
 // Mirror linking — set which mirror this profile appears on
 router.patch("/:id/mirror", authenticate, profileController.setMirror);
+
+// Widget configuration
+router.patch("/:id/widgets", authenticate, profileController.updateWidgets);
 
 // Gmail per profile
 router.get("/:id/gmail/connect", authenticate, gmailController.connect);

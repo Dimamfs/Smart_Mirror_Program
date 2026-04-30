@@ -51,10 +51,11 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = e.message;
       });
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
         });
+      }
     }
   }
 
