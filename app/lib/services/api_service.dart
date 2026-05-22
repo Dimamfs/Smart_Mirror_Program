@@ -147,6 +147,58 @@ class ApiService {
 
   // ── Mirror ──────────────────────────────────────────────────────────────────
 
+  // Completes a QR pairing handshake initiated by the mirror's sync module.
+  // sid and shortCode come from the scanned QR payload.
+  // Returns { mirrorId (= mirror public key), deviceToken }.
+  Future<Map<String, dynamic>> pairMirror({
+    required String sid,
+    required String shortCode,
+    String phonePublicKey = '',
+  }) async {
+    final res = await http.post(
+      Uri.parse('$kBaseUrl/mirrors/pair'),
+      headers: _headers,
+      body: jsonEncode({
+        'sid': sid,
+        'shortCode': shortCode,
+        'phonePublicKey': phonePublicKey,
+      }),
+    );
+    return _parse(res) as Map<String, dynamic>;
+  }
+
+  // Pairs using the 6-character short code shown below the QR on the mirror screen.
+  // Use this when the QR can't be scanned (emulator, no camera permission, etc.).
+  // Returns { mirrorId, deviceToken }.
+  Future<Map<String, dynamic>> pairByCode({
+    required String shortCode,
+    String phonePublicKey = '',
+  }) async {
+    final res = await http.post(
+      Uri.parse('$kBaseUrl/mirrors/pair/code'),
+      headers: _headers,
+      body: jsonEncode({
+        'shortCode': shortCode,
+        'phonePublicKey': phonePublicKey,
+      }),
+    );
+    return _parse(res) as Map<String, dynamic>;
+  }
+
+  // Tells the mirror (and its polling backend) that this profile is now active.
+  // Body: { mirrorId, profileId }
+  Future<void> setActiveUser({
+    required String mirrorId,
+    required int profileId,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$kBaseUrl/mirrors/active-user'),
+      headers: _headers,
+      body: jsonEncode({'mirrorId': mirrorId, 'profileId': profileId}),
+    );
+    _parse(res);
+  }
+
   Future<Profile> setMirrorId(int profileId, String? mirrorId) async {
     final url = '$kBaseUrl/profiles/$profileId/mirror';
     debugPrint('[ApiService] PATCH $url body={"mirrorId": "$mirrorId"}');

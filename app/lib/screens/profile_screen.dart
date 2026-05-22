@@ -5,6 +5,7 @@ import '../models/profile.dart';
 import '../models/email_message.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import 'pair_mirror_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Profile profile;
@@ -390,15 +391,16 @@ class _MirrorIdSection extends StatefulWidget {
 }
 
 class _MirrorIdSectionState extends State<_MirrorIdSection> {
-  late TextEditingController _controller;
-  bool _editing = false;
+  // Manual-entry fallback
+  final TextEditingController _controller = TextEditingController();
+  bool _showManual = false;
   bool _loading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.profile.mirrorId ?? '');
+    _controller.text = widget.profile.mirrorId ?? '';
   }
 
   @override
@@ -407,40 +409,71 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  // ── Set active on mirror ────────────────────────────────────────────────────
+
+  Future<void> _setActive() async {
+    final mirrorId = widget.profile.mirrorId;
+    if (mirrorId == null) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      await widget.api.setActiveUser(
+        mirrorId: mirrorId,
+        profileId: widget.profile.id,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Now showing on mirror'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not update mirror');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  // ── QR pairing ──────────────────────────────────────────────────────────────
+
+  Future<void> _scanQr() async {
+    final mirrorId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const PairMirrorScreen()),
+    );
+    if (mirrorId == null || !mounted) return;
+    await _linkMirror(mirrorId);
+  }
+
+  // ── Manual entry ────────────────────────────────────────────────────────────
+
+  Future<void> _saveManual() async {
     final mirrorId = _controller.text.trim();
-    final profileId = widget.profile.id;
-
-    debugPrint(
-        '[MirrorLink] Save pressed — profileId=$profileId mirrorId="$mirrorId"');
-
     if (mirrorId.isEmpty) {
       setState(() => _error = 'Mirror ID cannot be empty');
       return;
     }
+    await _linkMirror(mirrorId);
+  }
 
+  // ── Shared save logic ───────────────────────────────────────────────────────
+
+  Future<void> _linkMirror(String mirrorId) async {
     setState(() {
       _loading = true;
-      _error = null;
+      _error   = null;
     });
     try {
-      debugPrint('[MirrorLink] Sending PATCH /api/profiles/$profileId/mirror');
-      final updated = await widget.api.setMirrorId(profileId, mirrorId);
-      debugPrint('[MirrorLink] Success — profile updated: ${updated.mirrorId}');
+      final updated = await widget.api.setMirrorId(widget.profile.id, mirrorId);
       widget.onUpdated(updated);
-      if (mounted) {
-        setState(() {
-          _editing = false;
-        });
-      }
+      if (mounted) setState(() => _showManual = false);
     } on ApiException catch (e) {
-      debugPrint('[MirrorLink] ApiException: ${e.message} (${e.statusCode})');
       if (mounted) setState(() => _error = e.message);
-    } catch (e) {
-      debugPrint('[MirrorLink] Unexpected error: $e');
-      if (mounted) {
-        setState(() => _error = 'Connection error — is the backend running?');
-      }
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Connection error — is the backend running?');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -457,6 +490,7 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Header row ──────────────────────────────────────────────────────
           Row(
             children: [
               const Icon(Icons.tv_outlined, color: Colors.white, size: 20),
@@ -467,41 +501,88 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600)),
               const Spacer(),
-              if (!_editing)
+              if (!_showManual && !_loading)
                 TextButton(
-                  onPressed: () => setState(() => _editing = true),
+                  onPressed: _scanQr,
                   child: Text(
-                    widget.profile.hasMirror ? 'Change' : 'Link',
+                    widget.profile.hasMirror ? 'Re-pair' : 'Pair Mirror',
                     style: const TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                 ),
+              if (_loading)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
+                ),
             ],
           ),
-          if (!_editing) ...[
-            const SizedBox(height: 6),
-            if (widget.profile.hasMirror)
-              Row(
+
+          const SizedBox(height: 8),
+
+          // ── Linked state ────────────────────────────────────────────────────
+          if (!_showManual) ...[
+            if (widget.profile.hasMirror) ...[
+              const Row(
                 children: [
-                  const Icon(Icons.check_circle,
-                      color: Colors.greenAccent, size: 16),
-                  const SizedBox(width: 6),
+                  Icon(Icons.check_circle, color: Colors.greenAccent, size: 16),
+                  SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      widget.profile.mirrorId!,
-                      style:
-                          const TextStyle(color: Colors.white54, fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
+                      'Mirror paired',
+                      style: TextStyle(color: Colors.white54, fontSize: 13),
                     ),
                   ),
                 ],
-              )
-            else
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 42,
+                child: ElevatedButton.icon(
+                  onPressed: _loading ? null : _setActive,
+                  icon: const Icon(Icons.cast, size: 18),
+                  label: const Text('Show on Mirror'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ] else
               const Text(
-                'No mirror linked. Tap Link and enter the Mirror ID shown on your mirror.',
+                'Tap "Pair Mirror" and scan the QR code on your mirror.',
                 style: TextStyle(color: Colors.white54, fontSize: 13),
               ),
-          ] else ...[
-            const SizedBox(height: 12),
+
+            if (_error != null) ...[
+              const SizedBox(height: 6),
+              Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+            ],
+
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => setState(() {
+                _showManual = true;
+                _error = null;
+              }),
+              child: const Text(
+                'Enter ID manually instead',
+                style: TextStyle(
+                  color: Colors.white24,
+                  fontSize: 11,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.white24,
+                ),
+              ),
+            ),
+          ],
+
+          // ── Manual entry fallback ───────────────────────────────────────────
+          if (_showManual) ...[
+            const SizedBox(height: 4),
             TextField(
               controller: _controller,
               style: const TextStyle(color: Colors.white),
@@ -517,32 +598,26 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!,
-                  style:
-                      const TextStyle(color: Colors.redAccent, fontSize: 13)),
+              Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
             ],
             const SizedBox(height: 12),
             Row(
               children: [
                 TextButton(
-                  onPressed:
-                      _loading ? null : () => setState(() => _editing = false),
-                  child: const Text('Cancel',
-                      style: TextStyle(color: Colors.white54)),
+                  onPressed: _loading ? null : () => setState(() { _showManual = false; _error = null; }),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
                 ),
                 const Spacer(),
                 ElevatedButton(
-                  onPressed: _loading ? null : _save,
+                  onPressed: _loading ? null : _saveManual,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: _loading
                       ? const SizedBox(
-                          height: 16,
-                          width: 16,
+                          height: 16, width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Save'),
                 ),

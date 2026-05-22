@@ -68,6 +68,15 @@ const dbPromise = open({ filename: DB_PATH, driver: sqlite3.Database }).then(
       connected_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS mirrors (
+      mirror_id        TEXT    PRIMARY KEY,
+      account_id       INTEGER NOT NULL,
+      device_token     TEXT    UNIQUE,
+      phone_public_key TEXT,
+      created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
   `);
 
     // Migrations for existing databases

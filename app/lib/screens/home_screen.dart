@@ -4,6 +4,7 @@ import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'add_profile_screen.dart';
+import 'pair_mirror_screen.dart';
 import 'profile_screen.dart';
 import 'welcome_screen.dart';
 
@@ -49,6 +50,66 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _pairMirror() async {
+    final mirrorId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const PairMirrorScreen()),
+    );
+    if (mirrorId == null || !mounted) return;
+
+    // Ask the user which profile to link the mirror to
+    if (_profiles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Create a profile first, then pair the mirror.')),
+      );
+      return;
+    }
+
+    if (_profiles.length == 1) {
+      // Auto-link the only profile
+      await _linkMirrorToProfile(_profiles.first.id, mirrorId);
+      return;
+    }
+
+    // Multiple profiles — show a picker
+    if (!mounted) return;
+    final chosen = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text('Link mirror to which profile?',
+            style: TextStyle(color: Colors.white, fontSize: 16)),
+        children: [
+          for (final p in _profiles)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(p.id),
+              child: Text(p.name,
+                  style: const TextStyle(color: Colors.white70)),
+            ),
+        ],
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    await _linkMirrorToProfile(chosen, mirrorId);
+  }
+
+  Future<void> _linkMirrorToProfile(int profileId, String mirrorId) async {
+    try {
+      await context.read<AuthProvider>().api.setMirrorId(profileId, mirrorId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mirror linked! Open the profile to set it as active.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to link mirror. Try again from the profile screen.')),
+        );
+      }
+    }
+    _load();
+  }
+
   void _openProfile(Profile profile) async {
     await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ProfileScreen(profile: profile),
@@ -72,6 +133,11 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Profiles',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner, color: Colors.white70),
+            onPressed: _pairMirror,
+            tooltip: 'Pair Mirror',
+          ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white54),
             onPressed: _logout,

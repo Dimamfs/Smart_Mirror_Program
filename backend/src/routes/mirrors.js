@@ -2,6 +2,47 @@ const router = require('express').Router();
 const { getDb } = require('../config/database');
 const gmailService = require('../services/gmailService');
 const spotifyService = require('../services/spotifyService');
+const { pairSession, pairByCode } = require('../services/mirrorSync');
+const { authenticate } = require('../middleware/auth');
+
+// ── POST /api/mirrors/pair ────────────────────────────────────────────────────
+// Phone calls this after scanning the mirror's QR code.
+// Body: { sid, shortCode, phonePublicKey? }
+// Auth: Bearer JWT (required — ties the mirror to the phone owner's account)
+router.post('/pair', authenticate, async (req, res, next) => {
+  try {
+    const { sid, shortCode, phonePublicKey } = req.body;
+    if (!sid || !shortCode) {
+      return res.status(400).json({ error: 'sid and shortCode are required' });
+    }
+    const { mirrorId, deviceToken } = await pairSession(
+      sid, shortCode, req.account.accountId, phonePublicKey
+    );
+    res.json({ mirrorId, deviceToken });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /api/mirrors/pair/code ───────────────────────────────────────────────
+// Alternative pairing when the phone can't scan the QR (emulator, no camera).
+// The user reads the 6-character short code shown on the mirror and types it here.
+// Body: { shortCode }
+// Auth: Bearer JWT
+router.post('/pair/code', authenticate, async (req, res, next) => {
+  try {
+    const { shortCode, phonePublicKey } = req.body;
+    if (!shortCode) {
+      return res.status(400).json({ error: 'shortCode is required' });
+    }
+    const { mirrorId, deviceToken } = await pairByCode(
+      shortCode, req.account.accountId, phonePublicKey
+    );
+    res.json({ mirrorId, deviceToken });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -13,7 +54,7 @@ async function getActiveProfile(mirrorId) {
   const db = await getDb();
 
   const SELECT = `
-    SELECT p.id, p.name, p.email, p.google_sub, p.mirror_id,
+    SELECT p.id, p.name, p.email, p.google_sub, p.mirror_id, p.widgets_config,
            CASE WHEN gc.profile_id  IS NOT NULL THEN 1 ELSE 0 END AS gmail_connected,
            CASE WHEN sc.profile_id  IS NOT NULL THEN 1 ELSE 0 END AS spotify_connected,
            sc.display_name AS spotify_display_name
@@ -64,10 +105,12 @@ router.post('/active-user', async (req, res, next) => {
     );
 
     const active = await getActiveProfile(mirrorId);
+    const widgetSettings = active.widgets_config ? JSON.parse(active.widgets_config) : undefined;
     res.json({
       profile: {
         id: active.id,
         name: active.name,
+        settings:             widgetSettings,
         gmailConnected:       !!active.gmail_connected,
         gmailEmail:           active.email || null,
         spotifyConnected:     !!active.spotify_connected,
@@ -87,10 +130,12 @@ router.get('/active-user/:mirrorId', async (req, res, next) => {
   try {
     const profile = await getActiveProfile(req.params.mirrorId);
     if (!profile) return res.json({ profile: null });
+    const widgetSettings = profile.widgets_config ? JSON.parse(profile.widgets_config) : undefined;
     res.json({
       profile: {
         id: profile.id,
         name: profile.name,
+        settings:           widgetSettings,   // ← widget on/off map from Flutter app
         gmailConnected:     !!profile.gmail_connected,
         gmailEmail:         profile.email || null,
         spotifyConnected:   !!profile.spotify_connected,
