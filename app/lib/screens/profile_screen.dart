@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:app_links/app_links.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/profile.dart';
 import '../models/email_message.dart';
@@ -107,15 +110,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final url = await _api.getGmailConnectUrl(_profile.id);
       if (!mounted) return;
 
-      // Open the Google consent page in the system browser
+      // Set up deep-link listener BEFORE opening the browser so we don't miss
+      // the redirect while the browser is in the foreground.
+      final appLinks = AppLinks();
+      final completer = Completer<Uri?>();
+      final sub = appLinks.uriLinkStream
+          .where((u) => u.scheme == 'smartmirror' && u.host == 'oauth')
+          .listen((u) { if (!completer.isCompleted) completer.complete(u); });
+
       final uri = Uri.parse(url);
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        sub.cancel();
         throw ApiException('Could not open browser', 0);
       }
 
-      // Show a dialog — user comes back here after finishing in the browser
-      if (!mounted) return;
-      final done = await showDialog<bool>(
+      if (!mounted) { sub.cancel(); return; }
+
+      // Show a waiting dialog — auto-dismissed when the deep link arrives.
+      showDialog(
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
@@ -123,28 +135,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: const Text('Connect Gmail',
               style: TextStyle(color: Colors.white)),
           content: const Text(
-            'Complete the sign-in in your browser, then tap "Done" to continue.',
+            'Complete sign-in in your browser. This dialog will close automatically.',
             style: TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child:
-                  const Text('Cancel', style: TextStyle(color: Colors.white54)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-              ),
-              child: const Text('Done'),
+              onPressed: () {
+                if (!completer.isCompleted) completer.complete(null);
+              },
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
           ],
         ),
       );
 
-      if (done == true) await _refreshProfile();
+      final callbackUri = await completer.future.timeout(
+        const Duration(minutes: 5),
+        onTimeout: () => null,
+      );
+      sub.cancel();
+
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // dismiss dialog
+
+      if (callbackUri == null) return; // cancelled or timed out
+
+      final code  = callbackUri.queryParameters['code'];
+      final error = callbackUri.queryParameters['error'];
+      final state = callbackUri.queryParameters['state'];
+
+      if (error != null) throw ApiException('Google OAuth error: $error', 400);
+      if (code == null || state == null) {
+        throw ApiException('Invalid OAuth callback — missing code or state', 400);
+      }
+
+      await _api.gmailOAuthCallback(code, state);
+      await _refreshProfile();
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

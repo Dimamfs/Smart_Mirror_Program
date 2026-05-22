@@ -231,6 +231,14 @@ class ApiService {
     return data.map((j) => EmailMessage.fromJson(j)).toList();
   }
 
+  Future<void> gmailOAuthCallback(String code, String state) async {
+    final res = await http.get(
+      Uri.parse('$kBaseUrl/gmail/callback')
+          .replace(queryParameters: {'code': code, 'state': state}),
+    );
+    _parse(res);
+  }
+
   Future<void> disconnectGmail(int profileId) async {
     final res = await http.delete(
       Uri.parse('$kBaseUrl/profiles/$profileId/gmail'),
