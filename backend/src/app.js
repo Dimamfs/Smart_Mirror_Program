@@ -12,17 +12,12 @@ const { getByMirrorId } = require("./controllers/profileController");
 
 const app = express();
 
-// app.use(cors()); // allow all origins in dev — lock this down before production
-app.use(
-  cors({
-    origin: [
-      "http://localhost:8080",
-      "http://127.0.0.1:8080", // Flutter web
-      "http://localhost:3001",
-      "http://127.0.0.1:3001", // Mirror UI
-    ],
-  }),
-);
+// Open CORS for development — allows:
+//   - Mirror UI on the same machine (localhost:3001)
+//   - Mirror UI served from the Pi over the LAN (192.168.x.x:3001)
+//   - Flutter web preview (localhost:8080)
+// Lock this down to specific origins before any public deployment.
+app.use(cors());
 app.use(express.json());
 
 // Serve uploaded faces statically at http://127.0.0.1:3000/faces/filename.jpg

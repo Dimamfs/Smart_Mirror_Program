@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config/api.dart';
 
 class Profile {
   final int id;
@@ -31,10 +32,16 @@ class Profile {
   bool get hasSpotify => spotifyConnected;
   bool get hasMirror => mirrorId != null && mirrorId!.isNotEmpty;
 
-  // Assuming you are running on an Android emulator.
-  // Change 10.0.2.2 to localhost for web/iOS, or your computer's local IP for physical devices.
-  String? get faceUrl =>
-      faceFilename != null ? 'http://10.0.2.2:3000/faces/$faceFilename' : null;
+  // Derives the face image URL from kBaseUrl so changing the IP in config/api.dart
+  // automatically fixes this too (emulator: 10.0.2.2, physical: LAN IP of the server).
+  String? get faceUrl {
+    if (faceFilename == null) return null;
+    // kBaseUrl ends with "/api", strip that suffix to get the server root.
+    final serverRoot = kBaseUrl.endsWith('/api')
+        ? kBaseUrl.substring(0, kBaseUrl.length - 4)
+        : kBaseUrl;
+    return '$serverRoot/faces/$faceFilename';
+  }
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
         id: json['id'],
