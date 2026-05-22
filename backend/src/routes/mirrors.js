@@ -46,6 +46,20 @@ router.post('/pair/code', authenticate, async (req, res, next) => {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+// Resolve mirrorId → AI settings stored by the household that owns this mirror.
+async function getAiSettingsForMirror(mirrorId) {
+  const db = await getDb();
+  const row = await db.get(
+    `SELECT mas.settings
+     FROM mirror_ai_settings mas
+     JOIN accounts a ON a.household_id = mas.household_id
+     JOIN mirrors  m ON m.account_id   = a.id
+     WHERE m.mirror_id = ?`,
+    mirrorId
+  );
+  return row ? JSON.parse(row.settings) : null;
+}
+
 // Resolve mirrorId → profile row (with gmail_connected flag).
 // Checks active_mirror_users first (explicit selection on mirror),
 // then falls back to profiles.mirror_id (app-side pairing).
@@ -106,6 +120,7 @@ router.post('/active-user', async (req, res, next) => {
 
     const active = await getActiveProfile(mirrorId);
     const widgetSettings = active.widgets_config ? JSON.parse(active.widgets_config) : undefined;
+    const aiSettings = await getAiSettingsForMirror(mirrorId);
     res.json({
       profile: {
         id: active.id,
@@ -115,7 +130,8 @@ router.post('/active-user', async (req, res, next) => {
         gmailEmail:           active.email || null,
         spotifyConnected:     !!active.spotify_connected,
         spotifyDisplayName:   active.spotify_display_name || null,
-      }
+      },
+      aiSettings,
     });
   } catch (err) {
     next(err);
@@ -131,6 +147,7 @@ router.get('/active-user/:mirrorId', async (req, res, next) => {
     const profile = await getActiveProfile(req.params.mirrorId);
     if (!profile) return res.json({ profile: null });
     const widgetSettings = profile.widgets_config ? JSON.parse(profile.widgets_config) : undefined;
+    const aiSettings = await getAiSettingsForMirror(req.params.mirrorId);
     res.json({
       profile: {
         id: profile.id,
@@ -140,7 +157,8 @@ router.get('/active-user/:mirrorId', async (req, res, next) => {
         gmailEmail:         profile.email || null,
         spotifyConnected:   !!profile.spotify_connected,
         spotifyDisplayName: profile.spotify_display_name || null,
-      }
+      },
+      aiSettings,
     });
   } catch (err) {
     next(err);

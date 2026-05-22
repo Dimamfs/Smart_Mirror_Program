@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api.dart';
+import '../models/ai_settings.dart';
 import '../models/household.dart';
 import '../models/profile.dart';
 import '../models/email_message.dart';
@@ -279,5 +280,26 @@ class ApiService {
       headers: _headers,
     );
     _parse(res);
+  }
+
+  // ── AI Settings ─────────────────────────────────────────────────────────────
+
+  Future<AiSettings> getAiSettings() async {
+    final res = await http.get(
+      Uri.parse('$kBaseUrl/ai-settings'),
+      headers: _headers,
+    );
+    final data = _parse(res)['settings'] as Map<String, dynamic>? ?? {};
+    return AiSettings.fromJson(data);
+  }
+
+  Future<AiSettings> saveAiSettings(AiSettings settings) async {
+    final res = await http.put(
+      Uri.parse('$kBaseUrl/ai-settings'),
+      headers: _headers,
+      body: jsonEncode({'settings': settings.toJson()}),
+    );
+    final data = _parse(res)['settings'] as Map<String, dynamic>? ?? {};
+    return AiSettings.fromJson(data);
   }
 }

@@ -92,6 +92,17 @@ const dbPromise = open({ filename: DB_PATH, driver: sqlite3.Database }).then(
       .run(`ALTER TABLE profiles ADD COLUMN widgets_config TEXT`)
       .catch(() => {});
 
+    // AI assistant settings (household-scoped)
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS mirror_ai_settings (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        household_id INTEGER NOT NULL UNIQUE,
+        settings     TEXT    NOT NULL DEFAULT '{}',
+        updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE CASCADE
+      );
+    `);
+
     return db;
   },
 );

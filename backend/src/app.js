@@ -8,6 +8,7 @@ const profileRoutes = require("./routes/profiles");
 const gmailRoutes = require("./routes/gmail");
 const spotifyRoutes = require("./routes/spotify");
 const mirrorsRoutes = require("./routes/mirrors");
+const aiSettingsRoutes = require("./routes/ai_settings");
 const { getByMirrorId } = require("./controllers/profileController");
 
 const app = express();
@@ -37,6 +38,9 @@ app.get("/api/mirror/:mirrorId/profiles", getByMirrorId);
 
 // Mirror routes — active user polling, Gmail status, Gmail messages
 app.use("/api/mirrors", mirrorsRoutes);
+
+// AI assistant settings (household-scoped, authenticated)
+app.use("/api/ai-settings", aiSettingsRoutes);
 
 // Health check — useful for the mirror to verify connectivity
 app.get("/health", (_req, res) => {
