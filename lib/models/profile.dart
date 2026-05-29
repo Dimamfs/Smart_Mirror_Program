@@ -55,9 +55,22 @@ class Profile {
         spotifyConnected:
             json['spotify_connected'] == true || json['spotify_connected'] == 1,
         spotifyDisplayName: json['spotify_display_name'],
-        // This is where jsonDecode is used!
-        widgetsConfig: json['widgets_config'] != null
-            ? jsonDecode(json['widgets_config'])
-            : null,
+        widgetsConfig: _parseWidgetsConfig(json['widgets_config']),
       );
+
+  // widgets_config may arrive as a JSON string (SQLite TEXT column) or as an
+  // already-decoded object. Handle both, and never throw on bad data.
+  static Map<String, dynamic>? _parseWidgetsConfig(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is Map) return Map<String, dynamic>.from(raw);
+    if (raw is String && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
 }

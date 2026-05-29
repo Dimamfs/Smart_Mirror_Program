@@ -231,7 +231,9 @@ class _ProfileCard extends StatelessWidget {
                   : null,
               child: profile.faceUrl == null
                   ? Text(
-                      profile.name[0].toUpperCase(),
+                      profile.name.isNotEmpty
+                          ? profile.name[0].toUpperCase()
+                          : '?',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -27,19 +28,22 @@ class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
   Future<void> initialize(GlobalKey<NavigatorState> navigatorKey) async {
-    
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+    // Register the background handler first so an alert arriving during
+    // startup isn't missed.
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    final settings = await _firebaseMessaging.requestPermission(
       alert: true, badge: true, sound: true,
     );
+    debugPrint(
+        '[Notifications] permission: ${settings.authorizationStatus}');
 
     try {
-      String? token = await _firebaseMessaging.getToken();
-      debugPrint('\n🚨 YOUR FCM DEVICE TOKEN: $token\n');
+      final token = await _firebaseMessaging.getToken();
+      if (kDebugMode) debugPrint('\n🚨 YOUR FCM DEVICE TOKEN: $token\n');
     } catch (e) {
       debugPrint('Failed to get FCM token: $e');
     }
-
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('🚨 FOREGROUND ALERT RECEIVED 🚨');

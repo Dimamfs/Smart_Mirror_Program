@@ -33,7 +33,11 @@ class _AddProfileScreenState extends State<AddProfileScreen> {
       if (!mounted) return;
       Navigator.of(context).pop(true); // true = profile was created
     } on ApiException catch (e) {
-      setState(() { _error = e.message; });
+      if (mounted) setState(() { _error = e.message; });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Connection error — is the backend running?');
+      }
     } finally {
       if (mounted) setState(() { _loading = false; });
     }

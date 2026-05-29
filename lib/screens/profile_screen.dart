@@ -253,7 +253,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   : null,
               child: _profile.faceUrl == null
                   ? Text(
-                      _profile.name[0].toUpperCase(),
+                      _profile.name.isNotEmpty
+                          ? _profile.name[0].toUpperCase()
+                          : '?',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 40,

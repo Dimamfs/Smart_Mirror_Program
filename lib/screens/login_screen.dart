@@ -38,18 +38,22 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      final token = result['token'] as String?;
+      if (token == null) throw ApiException('Login failed: no token returned', 0);
       if (!mounted) return;
       final auth = context.read<AuthProvider>();
-      await auth.saveToken(result['token']);
+      await auth.saveToken(token);
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainNavigation()),
         (_) => false,
       );
     } on ApiException catch (e) {
-      setState(() {
-        _error = e.message;
-      });
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Connection error — is the backend running?');
+      }
     } finally {
       if (mounted) {
         setState(() {

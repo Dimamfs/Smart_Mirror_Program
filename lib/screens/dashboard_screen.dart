@@ -43,7 +43,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (profile.widgetsConfig != null) {
       profile.widgetsConfig!.forEach((key, value) {
         if (_widgets.containsKey(key)) {
-          _widgets[key] = value as bool;
+          // Coerce defensively — backend may send bool, int (1/0), or string.
+          _widgets[key] = value == true || value == 1 || value == '1';
         }
       });
     }

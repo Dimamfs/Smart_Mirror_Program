@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/alert_provider.dart';
 import 'dashboard_screen.dart';
 import 'alert_screen.dart';
 import 'face_setup_screen.dart';
-import 'home_screen.dart'; 
+import 'home_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -11,7 +13,8 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _MainNavigationState extends State<MainNavigation>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
@@ -22,10 +25,37 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Alerts received while backgrounded are written to storage by the FCM
+    // background isolate; reload them so the list is current on resume.
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<AlertProvider>().loadAlerts();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: _screens[_currentIndex],
+        // IndexedStack keeps all tabs alive so switching doesn't dispose +
+        // rebuild each screen (which re-fetched profiles and re-initialised
+        // the camera every time).
+        child: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
       ),
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(

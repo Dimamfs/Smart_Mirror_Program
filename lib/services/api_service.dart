@@ -25,11 +25,29 @@ class ApiService {
         if (token != null) 'Authorization': 'Bearer $token',
       };
 
-  // Parses the response and throws ApiException on non-2xx
+  // Parses the response and throws ApiException on non-2xx.
+  // Tolerates empty bodies (e.g. 204 No Content) and non-JSON error pages
+  // so callers get a clean ApiException instead of a raw FormatException.
   dynamic _parse(http.Response res) {
-    final body = jsonDecode(res.body);
-    if (res.statusCode >= 200 && res.statusCode < 300) return body;
-    final msg = body['error'] ?? 'Unknown error';
+    final ok = res.statusCode >= 200 && res.statusCode < 300;
+
+    dynamic body;
+    if (res.body.isNotEmpty) {
+      try {
+        body = jsonDecode(res.body);
+      } catch (_) {
+        if (ok) return null; // 2xx with a non-JSON body — nothing to return
+        throw ApiException(
+            'Unexpected server response (HTTP ${res.statusCode})',
+            res.statusCode);
+      }
+    }
+
+    if (ok) return body;
+
+    final msg = (body is Map && body['error'] != null)
+        ? body['error'].toString()
+        : 'Request failed (HTTP ${res.statusCode})';
     throw ApiException(msg, res.statusCode);
   }
 

@@ -55,6 +55,7 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   Future<void> _initializeCamera() async {
     try {
       final cameras = await availableCameras();
+      if (!mounted) return;
       if (cameras.isEmpty) {
         setState(() => _error = 'No cameras found on device.');
         return;
@@ -74,7 +75,7 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
       await _cameraController!.initialize();
       if (mounted) setState(() {});
     } catch (e) {
-      setState(() => _error = 'Error initializing camera: $e');
+      if (mounted) setState(() => _error = 'Error initializing camera: $e');
     }
   }
 
@@ -97,8 +98,9 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
     });
 
     try {
-      final XFile image = await _cameraController!.takePicture();
+      // Read api before the await to avoid using context across an async gap.
       final api = context.read<AuthProvider>().api;
+      final XFile image = await _cameraController!.takePicture();
 
       // Upload using the dynamically selected profile ID
       await api.uploadFace(_selectedProfile!.id, image.path);

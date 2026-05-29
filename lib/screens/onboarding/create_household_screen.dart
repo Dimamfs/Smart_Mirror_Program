@@ -33,7 +33,11 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
         builder: (_) => RegisterScreen(householdId: household.id),
       ));
     } on ApiException catch (e) {
-      setState(() { _error = e.message; });
+      if (mounted) setState(() { _error = e.message; });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Connection error — is the backend running?');
+      }
     } finally {
       if (mounted) setState(() { _loading = false; });
     }
