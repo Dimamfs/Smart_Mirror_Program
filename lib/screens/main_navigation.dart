@@ -17,13 +17,6 @@ class _MainNavigationState extends State<MainNavigation>
     with WidgetsBindingObserver {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const AlertScreen(),
-    const FaceSetupScreen(),
-    const HomeScreen(),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -54,7 +47,12 @@ class _MainNavigationState extends State<MainNavigation>
         // the camera every time).
         child: IndexedStack(
           index: _currentIndex,
-          children: _screens,
+          children: [
+            DashboardScreen(isActive: _currentIndex == 0),
+            const AlertScreen(),
+            FaceSetupScreen(isActive: _currentIndex == 2),
+            const HomeScreen(),
+          ],
         ),
       ),
       bottomNavigationBar: Theme(

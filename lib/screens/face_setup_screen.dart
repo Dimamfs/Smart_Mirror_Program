@@ -5,7 +5,8 @@ import '../providers/auth_provider.dart';
 import '../models/profile.dart';
 
 class FaceSetupScreen extends StatefulWidget {
-  const FaceSetupScreen({super.key});
+  final bool isActive;
+  const FaceSetupScreen({super.key, required this.isActive});
 
   @override
   State<FaceSetupScreen> createState() => _FaceSetupScreenState();
@@ -26,7 +27,18 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   void initState() {
     super.initState();
     _loadProfiles();
-    _initializeCamera();
+    if (widget.isActive) _initializeCamera();
+  }
+
+  @override
+  void didUpdateWidget(FaceSetupScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _initializeCamera();
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _cameraController?.dispose();
+      _cameraController = null;
+    }
   }
 
   Future<void> _loadProfiles() async {

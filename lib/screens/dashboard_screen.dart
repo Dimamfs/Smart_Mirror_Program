@@ -5,7 +5,8 @@ import '../models/profile.dart';
 import 'ai_settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final bool isActive;
+  const DashboardScreen({super.key, this.isActive = true});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -25,6 +26,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _resetWidgetsToDefault();
     _loadProfiles();
+  }
+
+  @override
+  void didUpdateWidget(DashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The parent keeps every tab alive in an IndexedStack, so initState only
+    // runs once. Re-fetch when this tab becomes visible again so profiles
+    // added/removed on the Profiles tab show up here too.
+    if (widget.isActive && !oldWidget.isActive) {
+      _loadProfiles();
+    }
   }
 
   void _resetWidgetsToDefault() {
@@ -58,8 +70,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _profiles = profiles;
           if (_profiles.isNotEmpty) {
-            _selectedProfile = _profiles.first;
+            // Keep the user's current selection across reloads if it still
+            // exists; otherwise fall back to the first profile.
+            final prevId = _selectedProfile?.id;
+            _selectedProfile = _profiles.firstWhere(
+              (p) => p.id == prevId,
+              orElse: () => _profiles.first,
+            );
             _applyProfileWidgets(_selectedProfile!);
+          } else {
+            _selectedProfile = null;
           }
           _isLoading = false;
         });

@@ -45,11 +45,18 @@ class NotificationService {
       debugPrint('Failed to get FCM token: $e');
     }
 
+    // Registered in a non-async method: these callbacks fire on later message
+    // events, not as continuations of this method's awaits, so using the
+    // navigator context inside them is safe.
+    _attachMessageListeners(navigatorKey);
+  }
+
+  void _attachMessageListeners(GlobalKey<NavigatorState> navigatorKey) {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('🚨 FOREGROUND ALERT RECEIVED 🚨');
       
-      if (message.notification != null && navigatorKey.currentContext != null) {
-        final context = navigatorKey.currentContext!;
+      final context = navigatorKey.currentContext;
+      if (message.notification != null && context != null && context.mounted) {
         final title = message.notification!.title ?? 'Security Alert';
         final body = message.notification!.body ?? 'An event occurred at the mirror.';
 
@@ -75,8 +82,9 @@ class NotificationService {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('🚨 BACKGROUND NOTIFICATION TAPPED 🚨');
 
-      if (navigatorKey.currentContext != null) {
-        Provider.of<AlertProvider>(navigatorKey.currentContext!, listen: false).loadAlerts();
+      final context = navigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        Provider.of<AlertProvider>(context, listen: false).loadAlerts();
       }
     });
 

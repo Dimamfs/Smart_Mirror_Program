@@ -488,7 +488,8 @@ class _Dropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final safeValue = items.any((e) => e.$1 == value) ? value : items.first.$1;
     return DropdownButtonFormField<String>(
-      value: safeValue,
+      initialValue: safeValue,
+      isExpanded: true,
       dropdownColor: Colors.grey[850],
       style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
