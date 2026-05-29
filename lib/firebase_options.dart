@@ -33,7 +33,10 @@ class DefaultFirebaseOptions {
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -61,14 +64,5 @@ class DefaultFirebaseOptions {
     projectId: 'smart-mirror-capstone-53e65',
     storageBucket: 'smart-mirror-capstone-53e65.firebasestorage.app',
     iosBundleId: 'com.smartmirror.smartMirrorApp',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyA6TR88vmmnfhuQ50Qcwm3dpwtMpCJtfo8',
-    appId: '1:972572328026:web:1be23b0134c6bb42121863',
-    messagingSenderId: '972572328026',
-    projectId: 'smart-mirror-capstone-53e65',
-    authDomain: 'smart-mirror-capstone-53e65.firebaseapp.com',
-    storageBucket: 'smart-mirror-capstone-53e65.firebasestorage.app',
   );
 }
