@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/profile.dart';
 import 'ai_settings_screen.dart';
+import 'connection_settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final bool isActive;
@@ -330,6 +331,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         SizedBox(height: 3),
                         Text(
                           'Configure OpenAI API key, voice model, and assistant settings.',
+                          style:
+                              TextStyle(color: Colors.white54, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.white24),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Connection
+        const Text(
+          'Connection',
+          style: TextStyle(
+              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ConnectionSettingsScreen()),
+          ),
+          child: Card(
+            color: Colors.grey[900],
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.lan_outlined,
+                        color: Colors.white70, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Mirror / Server Address',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600)),
+                        SizedBox(height: 3),
+                        Text(
+                          'Set the backend address manually and test the connection.',
                           style:
                               TextStyle(color: Colors.white54, fontSize: 13),
                         ),

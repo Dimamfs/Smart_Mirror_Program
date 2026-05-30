@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_mirror_app/screens/main_navigation.dart';
+import '../config/api.dart';
 import '../providers/auth_provider.dart';
+import 'connect_mirror_screen.dart';
 import 'welcome_screen.dart';
 
 // Shown while we check for a stored JWT. Routes to home or onboarding.
@@ -24,10 +26,21 @@ class _SplashScreenState extends State<SplashScreen> {
     await auth.init();
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(MaterialPageRoute(
-      builder: (_) =>
-          auth.isLoggedIn ? const MainNavigation() : const WelcomeScreen(),
-    ));
+    // Routing priority:
+    //   1. Already signed in        → straight to the app.
+    //   2. Never connected a mirror → first-run gate (must provision a backend
+    //      URL before login/signup, which would otherwise just fail).
+    //   3. Connected, not signed in → normal welcome (sign up / sign in).
+    final Widget next;
+    if (auth.isLoggedIn) {
+      next = const MainNavigation();
+    } else if (!ApiConfig.isProvisioned) {
+      next = const ConnectMirrorScreen();
+    } else {
+      next = const WelcomeScreen();
+    }
+
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => next));
   }
 
   @override

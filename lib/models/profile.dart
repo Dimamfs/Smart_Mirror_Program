@@ -32,14 +32,14 @@ class Profile {
   bool get hasSpotify => spotifyConnected;
   bool get hasMirror => mirrorId != null && mirrorId!.isNotEmpty;
 
-  // Derives the face image URL from kBaseUrl so changing the IP in config/api.dart
-  // automatically fixes this too (emulator: 10.0.2.2, physical: LAN IP of the server).
+  // Derives the face image URL from the runtime base URL so re-provisioning the
+  // backend (QR scan / manual entry) automatically fixes this too.
   String? get faceUrl {
     if (faceFilename == null) return null;
-    // kBaseUrl ends with "/api", strip that suffix to get the server root.
-    final serverRoot = kBaseUrl.endsWith('/api')
-        ? kBaseUrl.substring(0, kBaseUrl.length - 4)
-        : kBaseUrl;
+    final base = ApiConfig.baseUrl;
+    // base ends with "/api", strip that suffix to get the server root.
+    final serverRoot =
+        base.endsWith('/api') ? base.substring(0, base.length - 4) : base;
     return '$serverRoot/faces/$faceFilename';
   }
 

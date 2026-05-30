@@ -55,7 +55,7 @@ class ApiService {
 
   Future<Household> createHousehold(String name) async {
     final res = await http.post(
-      Uri.parse('$kBaseUrl/households'),
+      Uri.parse('${ApiConfig.baseUrl}/households'),
       headers: _headers,
       body: jsonEncode({'name': name}),
     );
@@ -68,7 +68,7 @@ class ApiService {
     required String password,
   }) async {
     final res = await http.post(
-      Uri.parse('$kBaseUrl/auth/register'),
+      Uri.parse('${ApiConfig.baseUrl}/auth/register'),
       headers: _headers,
       body: jsonEncode({
         'householdId': householdId,
@@ -84,7 +84,7 @@ class ApiService {
     required String password,
   }) async {
     final res = await http.post(
-      Uri.parse('$kBaseUrl/auth/login'),
+      Uri.parse('${ApiConfig.baseUrl}/auth/login'),
       headers: _headers,
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -95,7 +95,7 @@ class ApiService {
 
   Future<List<Profile>> listProfiles() async {
     final res = await http.get(
-      Uri.parse('$kBaseUrl/profiles'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles'),
       headers: _headers,
     );
     final List data = _parse(res)['profiles'];
@@ -104,7 +104,7 @@ class ApiService {
 
   Future<Profile> getProfile(int id) async {
     final res = await http.get(
-      Uri.parse('$kBaseUrl/profiles/$id'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$id'),
       headers: _headers,
     );
     return Profile.fromJson(_parse(res)['profile']);
@@ -112,7 +112,7 @@ class ApiService {
 
   Future<Profile> createProfile({required String name, String? email}) async {
     final res = await http.post(
-      Uri.parse('$kBaseUrl/profiles'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles'),
       headers: _headers,
       body: jsonEncode({'name': name, if (email != null) 'email': email}),
     );
@@ -121,7 +121,7 @@ class ApiService {
 
   Future<void> deleteProfile(int profileId) async {
     final res = await http.delete(
-      Uri.parse('$kBaseUrl/profiles/$profileId'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId'),
       headers: _headers,
     );
     _parse(res);
@@ -129,7 +129,7 @@ class ApiService {
 
   Future<Profile> updateWidgets(
       int profileId, Map<String, bool> widgets) async {
-    final url = '$kBaseUrl/profiles/$profileId/widgets';
+    final url = '${ApiConfig.baseUrl}/profiles/$profileId/widgets';
     debugPrint('[ApiService] PATCH $url');
     final res = await http.patch(
       Uri.parse(url),
@@ -142,7 +142,7 @@ class ApiService {
   // ── Face Setup ──────────────────────────────────────────────────────────────
 
   Future<void> uploadFace(int profileId, String imagePath) async {
-    final url = '$kBaseUrl/profiles/$profileId/face';
+    final url = '${ApiConfig.baseUrl}/profiles/$profileId/face';
     debugPrint('[ApiService] POST $url');
 
     var request = http.MultipartRequest('POST', Uri.parse(url));
@@ -175,7 +175,7 @@ class ApiService {
     String phonePublicKey = '',
   }) async {
     final res = await http.post(
-      Uri.parse('$kBaseUrl/mirrors/pair'),
+      Uri.parse('${ApiConfig.baseUrl}/mirrors/pair'),
       headers: _headers,
       body: jsonEncode({
         'sid': sid,
@@ -194,7 +194,7 @@ class ApiService {
     String phonePublicKey = '',
   }) async {
     final res = await http.post(
-      Uri.parse('$kBaseUrl/mirrors/pair/code'),
+      Uri.parse('${ApiConfig.baseUrl}/mirrors/pair/code'),
       headers: _headers,
       body: jsonEncode({
         'shortCode': shortCode,
@@ -211,7 +211,7 @@ class ApiService {
     required int profileId,
   }) async {
     final res = await http.post(
-      Uri.parse('$kBaseUrl/mirrors/active-user'),
+      Uri.parse('${ApiConfig.baseUrl}/mirrors/active-user'),
       headers: _headers,
       body: jsonEncode({'mirrorId': mirrorId, 'profileId': profileId}),
     );
@@ -219,7 +219,7 @@ class ApiService {
   }
 
   Future<Profile> setMirrorId(int profileId, String? mirrorId) async {
-    final url = '$kBaseUrl/profiles/$profileId/mirror';
+    final url = '${ApiConfig.baseUrl}/profiles/$profileId/mirror';
     debugPrint('[ApiService] PATCH $url body={"mirrorId": "$mirrorId"}');
     final res = await http.patch(
       Uri.parse(url),
@@ -235,7 +235,7 @@ class ApiService {
 
   Future<String> getGmailConnectUrl(int profileId) async {
     final res = await http.get(
-      Uri.parse('$kBaseUrl/profiles/$profileId/gmail/connect'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId/gmail/connect'),
       headers: _headers,
     );
     return _parse(res)['url'] as String;
@@ -243,24 +243,16 @@ class ApiService {
 
   Future<List<EmailMessage>> getMessages(int profileId) async {
     final res = await http.get(
-      Uri.parse('$kBaseUrl/profiles/$profileId/gmail/messages'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId/gmail/messages'),
       headers: _headers,
     );
     final List data = _parse(res)['messages'];
     return data.map((j) => EmailMessage.fromJson(j)).toList();
   }
 
-  Future<void> gmailOAuthCallback(String code, String state) async {
-    final res = await http.get(
-      Uri.parse('$kBaseUrl/gmail/callback')
-          .replace(queryParameters: {'code': code, 'state': state}),
-    );
-    _parse(res);
-  }
-
   Future<void> disconnectGmail(int profileId) async {
     final res = await http.delete(
-      Uri.parse('$kBaseUrl/profiles/$profileId/gmail'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId/gmail'),
       headers: _headers,
     );
     _parse(res);
@@ -270,9 +262,9 @@ class ApiService {
 
   Future<String> getSpotifyConnectUrl(int profileId) async {
     debugPrint(
-        '[ApiService] GET $kBaseUrl/profiles/$profileId/spotify/connect');
+        '[ApiService] GET ${ApiConfig.baseUrl}/profiles/$profileId/spotify/connect');
     final res = await http.get(
-      Uri.parse('$kBaseUrl/profiles/$profileId/spotify/connect'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId/spotify/connect'),
       headers: _headers,
     );
     final url = _parse(res)['url'] as String;
@@ -281,9 +273,9 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getSpotifyStatus(int profileId) async {
-    debugPrint('[ApiService] GET $kBaseUrl/profiles/$profileId/spotify/status');
+    debugPrint('[ApiService] GET ${ApiConfig.baseUrl}/profiles/$profileId/spotify/status');
     final res = await http.get(
-      Uri.parse('$kBaseUrl/profiles/$profileId/spotify/status'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId/spotify/status'),
       headers: _headers,
     );
     final data = _parse(res) as Map<String, dynamic>;
@@ -292,9 +284,9 @@ class ApiService {
   }
 
   Future<void> disconnectSpotify(int profileId) async {
-    debugPrint('[ApiService] DELETE $kBaseUrl/profiles/$profileId/spotify');
+    debugPrint('[ApiService] DELETE ${ApiConfig.baseUrl}/profiles/$profileId/spotify');
     final res = await http.delete(
-      Uri.parse('$kBaseUrl/profiles/$profileId/spotify'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId/spotify'),
       headers: _headers,
     );
     _parse(res);
@@ -304,7 +296,7 @@ class ApiService {
 
   Future<AiSettings> getAiSettings() async {
     final res = await http.get(
-      Uri.parse('$kBaseUrl/ai-settings'),
+      Uri.parse('${ApiConfig.baseUrl}/ai-settings'),
       headers: _headers,
     );
     final data = _parse(res)['settings'] as Map<String, dynamic>? ?? {};
@@ -313,7 +305,7 @@ class ApiService {
 
   Future<AiSettings> saveAiSettings(AiSettings settings) async {
     final res = await http.put(
-      Uri.parse('$kBaseUrl/ai-settings'),
+      Uri.parse('${ApiConfig.baseUrl}/ai-settings'),
       headers: _headers,
       body: jsonEncode({'settings': settings.toJson()}),
     );
