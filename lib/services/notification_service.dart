@@ -27,6 +27,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
+  // Stored after the first getToken() call; AuthProvider reads this when
+  // it has a JWT so it can register the token with the backend.
+  static String? lastToken;
+
   Future<void> initialize(GlobalKey<NavigatorState> navigatorKey) async {
     // Register the background handler first so an alert arriving during
     // startup isn't missed.
@@ -41,6 +45,7 @@ class NotificationService {
     try {
       final token = await _firebaseMessaging.getToken();
       if (kDebugMode) debugPrint('\n🚨 YOUR FCM DEVICE TOKEN: $token\n');
+      if (token != null) lastToken = token;
     } catch (e) {
       debugPrint('Failed to get FCM token: $e');
     }
@@ -90,6 +95,7 @@ class NotificationService {
 
     _firebaseMessaging.onTokenRefresh.listen((newToken) {
       debugPrint('FCM Token Refreshed: $newToken');
+      lastToken = newToken;
     });
   }
 }

@@ -166,6 +166,26 @@ class ApiService {
 
   // ── Mirror ──────────────────────────────────────────────────────────────────
 
+  // Registers (or refreshes) the device's FCM token with the backend so the
+  // household can receive push notifications for security alerts.
+  Future<void> registerDeviceToken(String token, {String platform = 'android'}) async {
+    final res = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/devices/token'),
+      headers: _headers,
+      body: jsonEncode({'token': token, 'platform': platform}),
+    );
+    _parse(res);
+  }
+
+  Future<void> unregisterDeviceToken(String token) async {
+    final res = await http.delete(
+      Uri.parse('${ApiConfig.baseUrl}/devices/token'),
+      headers: _headers,
+      body: jsonEncode({'token': token}),
+    );
+    _parse(res);
+  }
+
   // Completes a QR pairing handshake initiated by the mirror's sync module.
   // sid and shortCode come from the scanned QR payload.
   // Returns { mirrorId (= mirror public key), deviceToken }.
