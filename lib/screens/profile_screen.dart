@@ -494,6 +494,9 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
     });
     try {
       final updated = await widget.api.setMirrorId(widget.profile.id, mirrorId);
+      try {
+        await widget.api.setActiveUser(mirrorId: mirrorId, profileId: widget.profile.id);
+      } catch (_) {}
       widget.onUpdated(updated);
       if (mounted) setState(() => _showManual = false);
     } on ApiException catch (e) {

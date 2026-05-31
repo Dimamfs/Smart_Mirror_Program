@@ -145,7 +145,7 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[900],
+              color: Colors.black,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -170,7 +170,7 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
                     hintText: '192.168.1.6',
                     hintStyle: const TextStyle(color: Colors.white24),
                     filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.05),
+                    fillColor: Colors.transparent,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                     enabledBorder: OutlineInputBorder(

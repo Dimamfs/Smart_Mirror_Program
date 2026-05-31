@@ -6,7 +6,8 @@ import '../models/profile.dart';
 
 class FaceSetupScreen extends StatefulWidget {
   final bool isActive;
-  const FaceSetupScreen({super.key, required this.isActive});
+  final Profile? initialProfile;
+  const FaceSetupScreen({super.key, required this.isActive, this.initialProfile});
 
   @override
   State<FaceSetupScreen> createState() => _FaceSetupScreenState();
@@ -48,9 +49,12 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
       if (mounted) {
         setState(() {
           _profiles = profiles;
-          if (_profiles.isNotEmpty) {
-            _selectedProfile = _profiles.first;
-          }
+          _selectedProfile = (widget.initialProfile != null
+                  ? profiles
+                      .where((p) => p.id == widget.initialProfile!.id)
+                      .firstOrNull
+                  : null) ??
+              (profiles.isNotEmpty ? profiles.first : null);
           _isLoadingProfiles = false;
         });
       }

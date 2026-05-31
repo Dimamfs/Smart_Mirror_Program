@@ -4,6 +4,7 @@ import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'add_profile_screen.dart';
+import 'face_setup_screen.dart';
 import 'pair_mirror_screen.dart';
 import 'profile_screen.dart';
 import 'welcome_screen.dart';
@@ -95,9 +96,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _linkMirrorToProfile(int profileId, String mirrorId) async {
     try {
       await context.read<AuthProvider>().api.setMirrorId(profileId, mirrorId);
+      try {
+        await context.read<AuthProvider>().api.setActiveUser(mirrorId: mirrorId, profileId: profileId);
+      } catch (_) {}
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mirror linked! Open the profile to set it as active.')),
+          const SnackBar(content: Text('Mirror linked! It will recognise this profile once a face is registered.')),
         );
       }
     } catch (_) {
@@ -118,10 +122,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _addProfile() async {
-    final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
+    final newProfile = await Navigator.of(context).push<Profile>(MaterialPageRoute(
       builder: (_) => const AddProfileScreen(),
     ));
-    if (created == true) _load();
+    if (newProfile == null || !mounted) return;
+
+    // Auto-link to the mirror that is already paired in this household.
+    final mirrorId =
+        _profiles.where((p) => p.mirrorId != null).firstOrNull?.mirrorId;
+    if (mirrorId != null) {
+      try {
+        await context.read<AuthProvider>().api.setMirrorId(newProfile.id, mirrorId);
+        await context.read<AuthProvider>().api.setActiveUser(mirrorId: mirrorId, profileId: newProfile.id);
+      } catch (_) {
+        // Mirror link failed silently; user can link from the profile screen.
+      }
+    }
+
+    if (!mounted) return;
+    // Guide the user straight into face capture for the new profile.
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text('Register Face',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          elevation: 0,
+        ),
+        body: SafeArea(
+          child: FaceSetupScreen(isActive: true, initialProfile: newProfile),
+        ),
+      ),
+    ));
+    _load();
   }
 
   @override

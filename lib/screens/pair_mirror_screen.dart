@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../config/api.dart';
@@ -317,7 +318,11 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
           TextField(
             controller: _codeCtrl,
             autofocus: true,
-            textCapitalization: TextCapitalization.none,
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: [
+              TextInputFormatter.withFunction(
+                  (oldV, newV) => newV.copyWith(text: newV.text.toUpperCase())),
+            ],
             textAlign: TextAlign.center,
             maxLength: 36,
             style: const TextStyle(
