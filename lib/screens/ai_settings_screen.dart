@@ -180,7 +180,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                       ),
                       Switch(
                         value: _settings.enabled,
-                        activeColor: Colors.white,
+                        activeThumbColor: Colors.white,
                         onChanged: (v) =>
                             setState(() => _settings = _settings.copyWith(enabled: v)),
                       ),
@@ -189,13 +189,14 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                if (!_settings.apiKey.isNotEmpty) ...[
+                if (_settings.apiKey.isEmpty) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.1),
+                      color: Colors.amber.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                      border:
+                          Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                     ),
                     child: const Text(
                       'Add your OpenAI API key below to enable the voice assistant.',
@@ -429,7 +430,7 @@ InputDecoration _inputDecoration(String hint) => InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(color: Colors.white24),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.05),
+      fillColor: Colors.white.withValues(alpha: 0.05),
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       enabledBorder: OutlineInputBorder(
@@ -487,12 +488,13 @@ class _Dropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final safeValue = items.any((e) => e.$1 == value) ? value : items.first.$1;
     return DropdownButtonFormField<String>(
-      value: safeValue,
+      initialValue: safeValue,
+      isExpanded: true,
       dropdownColor: Colors.grey[850],
       style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
+        fillColor: Colors.white.withValues(alpha: 0.05),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         enabledBorder: OutlineInputBorder(

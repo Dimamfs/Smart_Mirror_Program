@@ -27,13 +27,17 @@ class _AddProfileScreenState extends State<AddProfileScreen> {
     setState(() { _loading = true; _error = null; });
 
     try {
-      await context.read<AuthProvider>().api.createProfile(
+      final profile = await context.read<AuthProvider>().api.createProfile(
             name: _nameController.text.trim(),
           );
       if (!mounted) return;
-      Navigator.of(context).pop(true); // true = profile was created
+      Navigator.of(context).pop(profile);
     } on ApiException catch (e) {
-      setState(() { _error = e.message; });
+      if (mounted) setState(() { _error = e.message; });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Connection error — is the backend running?');
+      }
     } finally {
       if (mounted) setState(() { _loading = false; });
     }
@@ -61,6 +65,11 @@ class _AddProfileScreenState extends State<AddProfileScreen> {
                 const Text(
                   'Who is this profile for?',
                   style: TextStyle(color: Colors.white54, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Pairing is done once. New profiles join your paired mirror automatically — just add a name and a face.',
+                  style: TextStyle(color: Colors.white24, fontSize: 12),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(

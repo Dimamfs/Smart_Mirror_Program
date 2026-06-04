@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   String? _token;
@@ -18,6 +20,11 @@ class AuthProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('jwt_token');
     _loading = false;
+    // Register the FCM token now that we have a JWT (token may have arrived at app start)
+    if (_token != null) {
+      final fcmToken = NotificationService.lastToken;
+      if (fcmToken != null) unawaited(registerFcmToken(fcmToken));
+    }
     notifyListeners();
   }
 
@@ -25,6 +32,9 @@ class AuthProvider extends ChangeNotifier {
     _token = token;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
+    // Register FCM token now that we have a JWT
+    final fcmToken = NotificationService.lastToken;
+    if (fcmToken != null) unawaited(registerFcmToken(fcmToken));
     notifyListeners();
   }
 
@@ -33,5 +43,14 @@ class AuthProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
     notifyListeners();
+  }
+
+  // Registers (or refreshes) the device's FCM token with the backend.
+  // No-op when not logged in.
+  Future<void> registerFcmToken(String token) async {
+    if (_token == null) return;
+    try {
+      await api.registerDeviceToken(token);
+    } catch (_) {}
   }
 }

@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import '../config/api.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/pending_pairing.dart';
 
 /// Pairs the phone with the mirror.
 ///
@@ -12,8 +15,17 @@ import '../services/api_service.dart';
 ///   • Code mode    — type the 6-character short code shown below the QR
 ///
 /// Returns a [String] mirrorId on success, or null if cancelled.
+///
+/// When [provisionUrlOnly] is true the screen runs a stripped-down flow used
+/// during first-run setup (before any account exists): it only reads the
+/// backend URL from the QR and persists it via [ApiConfig.setBaseUrl] — no
+/// authenticated pairing. In that mode it pops `true` on success. This is what
+/// breaks the bootstrap chicken-and-egg: the app must reach the backend to
+/// register/login, but only learns its address from the QR.
 class PairMirrorScreen extends StatefulWidget {
-  const PairMirrorScreen({super.key});
+  final bool provisionUrlOnly;
+
+  const PairMirrorScreen({super.key, this.provisionUrlOnly = false});
 
   @override
   State<PairMirrorScreen> createState() => _PairMirrorScreenState();
@@ -55,20 +67,60 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
     try {
       final Map<String, dynamic> payload = jsonDecode(raw);
 
-      // ── Settings-page QR: { type: "smart-mirror-pair", mirrorId, v: 1 } ──
+      // ── First-run provisioning: read the backend URL only, no pairing ──────
+      // No account/JWT exists yet, so we can't (and don't) pair a profile here.
+      // We just learn where the backend lives so onboarding can reach it.
+      // Only `api` carries the HTTP API base; the sync QR's `backend` field is
+      // a WebSocket URL and must NOT be used here.
+      if (widget.provisionUrlOnly) {
+        final url = payload['api'] as String?;
+        if (url == null || url.isEmpty) {
+          throw const FormatException(
+              'This QR has no server address. Make sure the mirror is showing its pairing screen, then try again.');
+        }
+        await ApiConfig.setBaseUrl(url);
+        // Stash pairing data from sync QR so sign-up can auto-pair without a
+        // second scan. Only sync QRs (v:1) carry sid + code.
+        final sid  = payload['sid']  as String?;
+        final code = payload['code'] as String?;
+        if (payload['v'] == 1 && sid != null && code != null) {
+          PendingPairing.set(sid, code);
+        }
+        if (!mounted) return;
+        Navigator.of(context).pop(true);
+        return;
+      }
+
+      // ── Settings-page QR: { type: "smart-mirror-pair", mirrorId, api?, v } ──
       if (payload['type'] == 'smart-mirror-pair') {
         final mirrorId = payload['mirrorId'] as String?;
         if (mirrorId == null) {
           throw const FormatException('QR code is missing mirrorId field.');
+        }
+        // v2 QR also carries the backend URL. Provision it before popping so
+        // the profile-link PATCH (and every later call) hits the right host —
+        // works on home WiFi or a hotspot without a rebuild. Older v1 QRs omit
+        // `api`, in which case we keep the current backend URL.
+        final apiUrl = payload['api'] as String?;
+        if (apiUrl != null && apiUrl.isNotEmpty) {
+          await ApiConfig.setBaseUrl(apiUrl);
         }
         if (!mounted) return;
         Navigator.of(context).pop(mirrorId);
         return;
       }
 
-      // ── Sync-module QR: { v:1, backend, sid, mpk, nonce, code } ──────────
+      // ── Sync-module QR: { v:1, backend, api?, sid, mpk, nonce, code } ────
       if (payload['v'] != 1) {
         throw const FormatException('Unknown QR version — please update the app.');
+      }
+
+      // Newer mirrors advertise the LAN HTTP API in `api`. Adopt it before the
+      // authenticated pair call so it works even if the app's default IP is
+      // wrong for this network. (`backend` here is a WebSocket URL — not used.)
+      final syncApiUrl = payload['api'] as String?;
+      if (syncApiUrl != null && syncApiUrl.isNotEmpty) {
+        await ApiConfig.setBaseUrl(syncApiUrl);
       }
 
       final sid       = payload['sid']  as String?;
@@ -166,25 +218,28 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Pair Mirror',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(widget.provisionUrlOnly ? 'Connect to Mirror' : 'Pair Mirror',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
         elevation: 0,
         actions: [
-          // Toggle button in the AppBar
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _error = null;
-                _mode = _mode == _PairMode.camera
-                    ? _PairMode.code
-                    : _PairMode.camera;
-              });
-            },
-            child: Text(
-              _mode == _PairMode.camera ? 'Enter Code' : 'Scan QR',
-              style: const TextStyle(color: Colors.white54, fontSize: 13),
+          // Code entry triggers authenticated pairing, which is meaningless
+          // before an account exists — hide the toggle in URL-only mode.
+          if (!widget.provisionUrlOnly)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _error = null;
+                  _mode = _mode == _PairMode.camera
+                      ? _PairMode.code
+                      : _PairMode.camera;
+                });
+              },
+              child: Text(
+                _mode == _PairMode.camera ? 'Enter Code' : 'Scan QR',
+                style: const TextStyle(color: Colors.white54, fontSize: 13),
+              ),
             ),
-          ),
         ],
       ),
       body: _mode == _PairMode.camera ? _buildCamera() : _buildCodeEntry(),
@@ -263,7 +318,11 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
           TextField(
             controller: _codeCtrl,
             autofocus: true,
-            textCapitalization: TextCapitalization.none,
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: [
+              TextInputFormatter.withFunction(
+                  (oldV, newV) => newV.copyWith(text: newV.text.toUpperCase())),
+            ],
             textAlign: TextAlign.center,
             maxLength: 36,
             style: const TextStyle(

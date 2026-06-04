@@ -5,7 +5,9 @@ import '../providers/auth_provider.dart';
 import '../models/profile.dart';
 
 class FaceSetupScreen extends StatefulWidget {
-  const FaceSetupScreen({super.key});
+  final bool isActive;
+  final Profile? initialProfile;
+  const FaceSetupScreen({super.key, required this.isActive, this.initialProfile});
 
   @override
   State<FaceSetupScreen> createState() => _FaceSetupScreenState();
@@ -26,7 +28,18 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   void initState() {
     super.initState();
     _loadProfiles();
-    _initializeCamera();
+    if (widget.isActive) _initializeCamera();
+  }
+
+  @override
+  void didUpdateWidget(FaceSetupScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _initializeCamera();
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _cameraController?.dispose();
+      _cameraController = null;
+    }
   }
 
   Future<void> _loadProfiles() async {
@@ -36,9 +49,12 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
       if (mounted) {
         setState(() {
           _profiles = profiles;
-          if (_profiles.isNotEmpty) {
-            _selectedProfile = _profiles.first;
-          }
+          _selectedProfile = (widget.initialProfile != null
+                  ? profiles
+                      .where((p) => p.id == widget.initialProfile!.id)
+                      .firstOrNull
+                  : null) ??
+              (profiles.isNotEmpty ? profiles.first : null);
           _isLoadingProfiles = false;
         });
       }
@@ -55,6 +71,7 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   Future<void> _initializeCamera() async {
     try {
       final cameras = await availableCameras();
+      if (!mounted) return;
       if (cameras.isEmpty) {
         if (mounted) setState(() => _error = 'No cameras found on device.');
         return;
@@ -97,8 +114,9 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
     });
 
     try {
-      final XFile image = await _cameraController!.takePicture();
+      // Read api before the await to avoid using context across an async gap.
       final api = context.read<AuthProvider>().api;
+      final XFile image = await _cameraController!.takePicture();
 
       // Upload using the dynamically selected profile ID
       await api.uploadFace(_selectedProfile!.id, image.path);

@@ -160,16 +160,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (callbackUri == null) return; // cancelled or timed out
 
-      final code  = callbackUri.queryParameters['code'];
-      final error = callbackUri.queryParameters['error'];
-      final state = callbackUri.queryParameters['state'];
+      final error  = callbackUri.queryParameters['error'];
+      final status = callbackUri.queryParameters['status'];
 
       if (error != null) throw ApiException('Google OAuth error: $error', 400);
-      if (code == null || state == null) {
-        throw ApiException('Invalid OAuth callback — missing code or state', 400);
+      if (status != 'connected') {
+        throw ApiException('OAuth completed with unexpected status', 400);
       }
 
-      await _api.gmailOAuthCallback(code, state);
       await _refreshProfile();
     } on ApiException catch (e) {
       if (mounted) {
@@ -253,7 +251,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   : null,
               child: _profile.faceUrl == null
                   ? Text(
-                      _profile.name[0].toUpperCase(),
+                      _profile.name.isNotEmpty
+                          ? _profile.name[0].toUpperCase()
+                          : '?',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 40,
@@ -494,6 +494,9 @@ class _MirrorIdSectionState extends State<_MirrorIdSection> {
     });
     try {
       final updated = await widget.api.setMirrorId(widget.profile.id, mirrorId);
+      try {
+        await widget.api.setActiveUser(mirrorId: mirrorId, profileId: widget.profile.id);
+      } catch (_) {}
       widget.onUpdated(updated);
       if (mounted) setState(() => _showManual = false);
     } on ApiException catch (e) {

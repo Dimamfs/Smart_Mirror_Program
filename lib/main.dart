@@ -7,11 +7,16 @@ import 'providers/alert_provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
+import 'config/api.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Restore a persisted backend URL (from QR provisioning or manual entry)
+  // before anything makes an API call.
+  await ApiConfig.load();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

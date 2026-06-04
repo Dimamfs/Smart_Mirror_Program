@@ -47,21 +47,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: email,
         password: _passwordController.text,
       );
+      final token = result['token'] as String?;
+      if (token == null) {
+        throw ApiException('Registration failed: no token returned', 0);
+      }
       if (!mounted) return;
       final auth = context.read<AuthProvider>();
-      await auth.saveToken(result['token']);
-      // Auto-create a profile using the part before @ as the name
-      final profileName = email.split('@').first;
-      await auth.api.createProfile(name: profileName);
+      await auth.saveToken(token);
+      // Auto-create a profile using the part before @ as the name.
+      // Best-effort: the account already exists and we're signed in, so a
+      // profile-creation hiccup shouldn't strand the user on this screen.
+      try {
+        await auth.api.createProfile(name: email.split('@').first);
+      } catch (_) {/* can be added later from the Profiles tab */}
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainNavigation()),
         (_) => false,
       );
     } on ApiException catch (e) {
-      setState(() {
-        _error = e.message;
-      });
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Connection error — is the backend running?');
+      }
     } finally {
       if (mounted) {
         setState(() {
