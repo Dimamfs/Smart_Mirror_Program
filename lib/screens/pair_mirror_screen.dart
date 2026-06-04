@@ -7,6 +7,7 @@ import '../config/api.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/pending_pairing.dart';
+import 'connection_settings_screen.dart';
 
 /// Pairs the phone with the mirror.
 ///
@@ -40,6 +41,7 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
 
   bool _processing = false;
   String? _error;
+  bool _noServerAddress = false;
 
   @override
   void dispose() {
@@ -61,8 +63,13 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
     setState(() {
       _processing = true;
       _error = null;
+      _noServerAddress = false;
     });
     await _scanner.stop();
+
+    // Tracks whether the specific "no api field" case fired so the FormatException
+    // handler can offer the manual-IP fallback rather than a dead end.
+    bool missingApiField = false;
 
     try {
       final Map<String, dynamic> payload = jsonDecode(raw);
@@ -75,6 +82,7 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
       if (widget.provisionUrlOnly) {
         final url = payload['api'] as String?;
         if (url == null || url.isEmpty) {
+          missingApiField = true;
           throw const FormatException(
               'This QR has no server address. Make sure the mirror is showing its pairing screen, then try again.');
         }
@@ -143,7 +151,11 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
       await _scanner.start();
     } on FormatException catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.message; _processing = false; });
+      setState(() {
+        _error = e.message;
+        _processing = false;
+        _noServerAddress = widget.provisionUrlOnly && missingApiField;
+      });
       await _scanner.start();
     } catch (_) {
       if (!mounted) return;
@@ -153,6 +165,17 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
       });
       await _scanner.start();
     }
+  }
+
+  // Opens manual IP entry and propagates success back up the navigator stack.
+  Future<void> _openManualEntry() async {
+    final ok = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const ConnectionSettingsScreen(popOnSave: true),
+      ),
+    );
+    if (!mounted) return;
+    if (ok == true) Navigator.of(context).pop(true);
   }
 
   // ── Short-code entry ─────────────────────────────────────────────────────────
@@ -280,6 +303,18 @@ class _PairMirrorScreenState extends State<PairMirrorScreen> {
                 const Text('Point your camera at the QR code on the mirror',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white70, fontSize: 13)),
+                if (_noServerAddress) ...[
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _openManualEntry,
+                    child: const Text('Enter IP manually instead',
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white70)),
+                  ),
+                ],
               ] else
                 const Text('Point your camera at the QR code on the mirror',
                     textAlign: TextAlign.center,
