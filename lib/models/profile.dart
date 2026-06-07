@@ -9,6 +9,7 @@ class Profile {
   final String? googleSub;
   final String? mirrorId;
   final String? faceFilename;
+  final List<String>? faceFilenames;
   final String createdAt;
   final bool spotifyConnected;
   final String? spotifyDisplayName;
@@ -22,6 +23,7 @@ class Profile {
     this.googleSub,
     this.mirrorId,
     this.faceFilename,
+    this.faceFilenames,
     required this.createdAt,
     this.spotifyConnected = false,
     this.spotifyDisplayName,
@@ -51,12 +53,26 @@ class Profile {
         googleSub: json['google_sub'],
         mirrorId: json['mirror_id'],
         faceFilename: json['face_filename'],
+        faceFilenames: _parseFaceFilenames(json['face_filenames']),
         createdAt: json['created_at'] ?? '',
         spotifyConnected:
             json['spotify_connected'] == true || json['spotify_connected'] == 1,
         spotifyDisplayName: json['spotify_display_name'],
         widgetsConfig: _parseWidgetsConfig(json['widgets_config']),
       );
+
+  // face_filenames arrives as a JSON string (e.g. '["a.jpg","b.jpg"]') from SQLite.
+  static List<String>? _parseFaceFilenames(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is List) return raw.cast<String>();
+    if (raw is String && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) return decoded.cast<String>();
+      } catch (_) {}
+    }
+    return null;
+  }
 
   // widgets_config may arrive as a JSON string (SQLite TEXT column) or as an
   // already-decoded object. Handle both, and never throw on bad data.

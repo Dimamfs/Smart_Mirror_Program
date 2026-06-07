@@ -164,6 +164,32 @@ class ApiService {
     }
   }
 
+  Future<void> uploadFaces(int profileId, List<String> imagePaths) async {
+    final url = '${ApiConfig.baseUrl}/profiles/$profileId/faces';
+    debugPrint('[ApiService] POST $url (${imagePaths.length} files)');
+
+    var request = http.MultipartRequest('POST', Uri.parse(url));
+
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    for (final path in imagePaths) {
+      request.files.add(await http.MultipartFile.fromPath('faces', path));
+    }
+
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      debugPrint('[ApiService] ${imagePaths.length} face poses uploaded');
+    } else {
+      final msg =
+          jsonDecode(response.body)['error'] ?? 'Failed to upload faces';
+      throw ApiException(msg, response.statusCode);
+    }
+  }
+
   // ── Mirror ──────────────────────────────────────────────────────────────────
 
   // Registers (or refreshes) the device's FCM token with the backend so the
