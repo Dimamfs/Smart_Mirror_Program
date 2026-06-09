@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/profile.dart';
+import '../services/api_service.dart';
+import '../widgets/connection_error_view.dart';
 import 'ai_settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Profile? _selectedProfile;
   bool _isLoading = true;
   String? _error;
+  bool _isConnectionError = false;
 
   // Local state for toggles, with default fallbacks
   late Map<String, bool> _widgets;
@@ -63,6 +66,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadProfiles() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+        _isConnectionError = false;
+      });
+    }
     try {
       final api = context.read<AuthProvider>().api;
       final profiles = await api.listProfiles();
@@ -87,7 +97,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load profiles: $e';
+          if (e is ApiException) {
+            _error = e.message;
+          } else {
+            _isConnectionError = true;
+          }
           _isLoading = false;
         });
       }
@@ -126,6 +140,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: Colors.white));
+    }
+
+    if (_isConnectionError) {
+      return ConnectionErrorView(onRetry: _loadProfiles);
     }
 
     if (_error != null) {

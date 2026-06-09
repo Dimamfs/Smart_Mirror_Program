@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../providers/auth_provider.dart';
 import '../models/profile.dart';
+import '../services/api_service.dart';
+import '../widgets/connection_error_view.dart';
 
 // ── Pose stages ───────────────────────────────────────────────────────────────
 enum _Pose { front, left, right, uploading, done }
@@ -64,6 +66,8 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   List<Profile> _profiles = [];
   Profile? _selectedProfile;
   bool _isLoadingProfiles = true;
+  bool _profilesConnectionFailed = false;
+  String? _profilesApiError;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
@@ -107,6 +111,13 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   // ── Profiles ─────────────────────────────────────────────────────────────────
 
   Future<void> _loadProfiles() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingProfiles = true;
+        _profilesConnectionFailed = false;
+        _profilesApiError = null;
+      });
+    }
     try {
       final api = context.read<AuthProvider>().api;
       final profiles = await api.listProfiles();
@@ -125,7 +136,11 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load profiles: $e';
+          if (e is ApiException) {
+            _profilesApiError = e.message;
+          } else {
+            _profilesConnectionFailed = true;
+          }
           _isLoadingProfiles = false;
         });
       }
@@ -437,6 +452,29 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_profilesConnectionFailed) {
+      return ConnectionErrorView(onRetry: _loadProfiles);
+    }
+
+    if (_profilesApiError != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_profilesApiError!,
+                style: const TextStyle(color: Colors.redAccent),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _loadProfiles,
+              child: const Text('Retry',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(

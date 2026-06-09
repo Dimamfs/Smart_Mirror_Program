@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:smart_mirror_app/screens/main_navigation.dart';
 import '../config/api.dart';
 import '../providers/auth_provider.dart';
+import 'connectivity_gate.dart';
 import 'onboarding/connect_wifi_screen.dart';
 import 'welcome_screen.dart';
 
@@ -33,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen> {
     //   3. Connected, not signed in → normal welcome (sign up / sign in).
     final Widget next;
     if (auth.isLoggedIn) {
-      next = const MainNavigation();
+      next = const ConnectivityGate(child: MainNavigation());
     } else if (!ApiConfig.isProvisioned) {
       next = const ConnectWifiScreen(); // step 0: join home WiFi before QR pairing
     } else {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../widgets/connection_error_view.dart';
 import 'add_profile_screen.dart';
 import 'face_setup_screen.dart';
 import 'pair_mirror_screen.dart';
@@ -20,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Profile> _profiles = [];
   bool _loading = true;
   String? _error;
+  bool _isConnectionError = false;
 
   @override
   void initState() {
@@ -31,12 +33,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _isConnectionError = false;
     });
     try {
       final profiles = await context.read<AuthProvider>().api.listProfiles();
       if (mounted) setState(() => _profiles = profiles);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _isConnectionError = true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -196,6 +201,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(
           child: CircularProgressIndicator(color: Colors.white));
     }
+    if (_isConnectionError) {
+      return ConnectionErrorView(onRetry: _load);
+    }
+
     if (_error != null) {
       return Center(
         child: Column(

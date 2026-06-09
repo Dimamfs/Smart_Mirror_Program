@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/api.dart';
+import '../services/connectivity_service.dart';
 
 /// Manual fallback for setting the backend (mirror/server) address when the
 /// QR pairing flow isn't available — e.g. no camera, or a mirror running an
@@ -43,13 +44,6 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
     super.dispose();
   }
 
-  // Builds the /health URL (server root, not under /api) from a base URL.
-  String _healthUrl(String base) {
-    final root =
-        base.endsWith('/api') ? base.substring(0, base.length - 4) : base;
-    return '$root/health';
-  }
-
   Future<void> _test() async {
     final raw = _urlCtrl.text.trim();
     if (raw.isEmpty) {
@@ -69,7 +63,7 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
 
     try {
       final res = await http
-          .get(Uri.parse(_healthUrl(base)))
+          .get(Uri.parse(ConnectivityService.healthUrl(base)))
           .timeout(const Duration(seconds: 5));
       if (!mounted) return;
       if (res.statusCode >= 200 && res.statusCode < 300) {
