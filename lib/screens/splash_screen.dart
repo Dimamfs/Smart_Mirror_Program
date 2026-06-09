@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:smart_mirror_app/screens/main_navigation.dart';
 import '../config/api.dart';
 import '../providers/auth_provider.dart';
-import 'connect_mirror_screen.dart';
+import 'onboarding/connect_wifi_screen.dart';
 import 'welcome_screen.dart';
 
 // Shown while we check for a stored JWT. Routes to home or onboarding.
@@ -35,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (auth.isLoggedIn) {
       next = const MainNavigation();
     } else if (!ApiConfig.isProvisioned) {
-      next = const ConnectMirrorScreen();
+      next = const ConnectWifiScreen(); // step 0: join home WiFi before QR pairing
     } else {
       next = const WelcomeScreen();
     }
