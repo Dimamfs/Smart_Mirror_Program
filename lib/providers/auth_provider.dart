@@ -39,6 +39,13 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Unregister the FCM token while we still have a valid JWT.
+    final fcmToken = NotificationService.lastToken;
+    if (fcmToken != null && _token != null) {
+      try {
+        await api.unregisterDeviceToken(fcmToken);
+      } catch (_) {}
+    }
     _token = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');

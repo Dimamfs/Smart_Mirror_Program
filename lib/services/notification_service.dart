@@ -89,7 +89,11 @@ class NotificationService {
 
       final context = navigatorKey.currentContext;
       if (context != null && context.mounted) {
-        Provider.of<AlertProvider>(context, listen: false).loadAlerts();
+        final alertProvider =
+            Provider.of<AlertProvider>(context, listen: false);
+        alertProvider.loadAlerts();
+        // Ask MainNavigation to switch to the Alerts tab.
+        alertProvider.requestNavigateToAlerts();
       }
     });
 
