@@ -6,6 +6,7 @@ import '../models/ai_settings.dart';
 import '../models/household.dart';
 import '../models/profile.dart';
 import '../models/email_message.dart';
+import '../models/security_alert.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -367,5 +368,30 @@ class ApiService {
     );
     final data = _parse(res)['settings'] as Map<String, dynamic>? ?? {};
     return AiSettings.fromJson(data);
+  }
+
+  // ── Security Alerts ─────────────────────────────────────────────────────────
+
+  Future<List<SecurityAlert>> getAlerts({int limit = 50, int offset = 0}) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/alerts').replace(
+      queryParameters: {
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      },
+    );
+    final res = await http.get(uri, headers: _headers);
+    final List data = _parse(res)['alerts'] as List;
+    return data
+        .map((j) => SecurityAlert.fromJson(j as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> sendTestAlert(String mirrorId) async {
+    final res = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/alerts/test'),
+      headers: _headers,
+      body: jsonEncode({'mirrorId': mirrorId}),
+    );
+    _parse(res);
   }
 }

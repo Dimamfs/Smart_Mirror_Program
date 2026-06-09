@@ -23,7 +23,27 @@ class _MainNavigationState extends State<MainNavigation>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _completePendingPairing());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _completePendingPairing();
+      // Listen for notification-tap deep-links that want to open the Alerts tab.
+      context.read<AlertProvider>().addListener(_onAlertProviderChanged);
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // Safe: provider outlives this widget so the listener must be removed.
+    context.read<AlertProvider>().removeListener(_onAlertProviderChanged);
+    super.dispose();
+  }
+
+  void _onAlertProviderChanged() {
+    final provider = context.read<AlertProvider>();
+    if (provider.pendingAlertsNavigation) {
+      provider.clearNavigationRequest();
+      if (mounted) setState(() => _currentIndex = 1);
+    }
   }
 
   Future<void> _completePendingPairing() async {
@@ -54,15 +74,7 @@ class _MainNavigationState extends State<MainNavigation>
   }
 
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Alerts received while backgrounded are written to storage by the FCM
-    // background isolate; reload them so the list is current on resume.
     if (state == AppLifecycleState.resumed && mounted) {
       context.read<AlertProvider>().loadAlerts();
     }
@@ -72,9 +84,6 @@ class _MainNavigationState extends State<MainNavigation>
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        // IndexedStack keeps all tabs alive so switching doesn't dispose +
-        // rebuild each screen (which re-fetched profiles and re-initialised
-        // the camera every time).
         child: IndexedStack(
           index: _currentIndex,
           children: [
@@ -95,20 +104,52 @@ class _MainNavigationState extends State<MainNavigation>
           currentIndex: _currentIndex,
           selectedItemColor: Colors.white,
           unselectedItemColor: Colors.white54,
-          backgroundColor: Colors.black, 
+          backgroundColor: Colors.black,
           onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
+            setState(() => _currentIndex = index);
+            // Clear the unread badge when the user navigates to the Alerts tab.
+            if (index == 1) {
+              context.read<AlertProvider>().markAllRead();
+            }
           },
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-            BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Alerts'),
-            BottomNavigationBarItem(icon: Icon(Icons.face), label: 'Face Setup'),
-            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Profiles'),
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard),
+              label: 'Dashboard',
+            ),
+            BottomNavigationBarItem(
+              icon: _AlertsIcon(),
+              label: 'Alerts',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.face),
+              label: 'Face Setup',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              label: 'Profiles',
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// Bell icon with a red badge when there are unread alerts.
+class _AlertsIcon extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AlertProvider>(
+      builder: (_, provider, __) {
+        final count = provider.unreadCount;
+        if (count == 0) return const Icon(Icons.notifications);
+        return Badge(
+          label: Text(count > 99 ? '99+' : '$count'),
+          backgroundColor: Colors.redAccent,
+          child: const Icon(Icons.notifications),
+        );
+      },
     );
   }
 }
