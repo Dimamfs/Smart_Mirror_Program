@@ -279,7 +279,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: SwitchListTile(
             title: const Text('Gesture Recognition',
                 style: TextStyle(color: Colors.white)),
-            subtitle: const Text('Control the mirror using hand gestures.',
+            subtitle: const Text('When on, widgets can be moved with hand gestures. When off, widgets stay locked in place.',
                 style: TextStyle(color: Colors.white54)),
             value: _widgets['gesture']!,
             activeThumbColor: Colors.blueAccent,
