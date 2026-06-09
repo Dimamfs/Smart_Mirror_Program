@@ -296,10 +296,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(height: 12),
         GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
-          ),
-          child: Card(
+          onTap: _selectedProfile == null
+              ? null
+              : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AiSettingsScreen(profile: _selectedProfile!),
+                    ),
+                  ),
+          child: Opacity(
+            opacity: _selectedProfile == null ? 0.4 : 1.0,
+            child: Card(
             color: Colors.grey[900],
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
@@ -340,6 +346,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
+          ),
           ),
         ),
       ],

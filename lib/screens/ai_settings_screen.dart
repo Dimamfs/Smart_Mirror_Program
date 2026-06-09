@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/ai_settings.dart';
+import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 
@@ -32,7 +33,8 @@ const _kVoices = [
 ];
 
 class AiSettingsScreen extends StatefulWidget {
-  const AiSettingsScreen({super.key});
+  final Profile profile;
+  const AiSettingsScreen({super.key, required this.profile});
 
   @override
   State<AiSettingsScreen> createState() => _AiSettingsScreenState();
@@ -76,7 +78,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final s = await _api.getAiSettings();
+      final s = await _api.getAiSettings(widget.profile.id);
       if (mounted) {
         setState(() => _settings = s);
         _apiKeyCtrl.text = s.apiKey;
@@ -101,7 +103,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
 
     setState(() { _saving = true; _error = null; });
     try {
-      final saved = await _api.saveAiSettings(updated);
+      final saved = await _api.saveAiSettings(widget.profile.id, updated);
       if (mounted) {
         setState(() => _settings = saved);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -126,8 +128,8 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('AI Assistant',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('AI Assistant — ${widget.profile.name}',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         elevation: 0,
         actions: [
           if (!_loading)
@@ -238,7 +240,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Stored on the server — used by the mirror to connect to OpenAI.',
+                        'Stored per profile — the mirror uses this key when you are the active user.',
                         style: TextStyle(color: Colors.white24, fontSize: 11),
                       ),
                     ],

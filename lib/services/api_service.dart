@@ -348,20 +348,20 @@ class ApiService {
     _parse(res);
   }
 
-  // ── AI Settings ─────────────────────────────────────────────────────────────
+  // ── AI Settings (per-profile) ────────────────────────────────────────────────
 
-  Future<AiSettings> getAiSettings() async {
+  Future<AiSettings> getAiSettings(int profileId) async {
     final res = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/ai-settings'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId/ai-settings'),
       headers: _headers,
     );
     final data = _parse(res)['settings'] as Map<String, dynamic>? ?? {};
     return AiSettings.fromJson(data);
   }
 
-  Future<AiSettings> saveAiSettings(AiSettings settings) async {
+  Future<AiSettings> saveAiSettings(int profileId, AiSettings settings) async {
     final res = await http.put(
-      Uri.parse('${ApiConfig.baseUrl}/ai-settings'),
+      Uri.parse('${ApiConfig.baseUrl}/profiles/$profileId/ai-settings'),
       headers: _headers,
       body: jsonEncode({'settings': settings.toJson()}),
     );
