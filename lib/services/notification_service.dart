@@ -22,6 +22,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   savedAlerts.insert(0, jsonEncode(newAlert));
   await prefs.setStringList('alerts', savedAlerts);
+  await prefs.setInt('alerts_unread', (prefs.getInt('alerts_unread') ?? 0) + 1);
 }
 
 class NotificationService {
@@ -30,6 +31,9 @@ class NotificationService {
   // Stored after the first getToken() call; AuthProvider reads this when
   // it has a JWT so it can register the token with the backend.
   static String? lastToken;
+
+  // Set by AuthProvider.init() so token rotations re-register with the backend.
+  static void Function(String)? onTokenRefreshed;
 
   Future<void> initialize(GlobalKey<NavigatorState> navigatorKey) async {
     // Register the background handler first so an alert arriving during
@@ -100,6 +104,7 @@ class NotificationService {
     _firebaseMessaging.onTokenRefresh.listen((newToken) {
       debugPrint('FCM Token Refreshed: $newToken');
       lastToken = newToken;
+      onTokenRefreshed?.call(newToken);
     });
   }
 }

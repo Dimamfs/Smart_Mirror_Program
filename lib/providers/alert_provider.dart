@@ -18,6 +18,7 @@ class AlertProvider with ChangeNotifier {
 
   Future<void> loadAlerts() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     final savedAlerts = prefs.getStringList('alerts') ?? [];
 
     _alert = savedAlerts.map((alertStr) {

@@ -20,6 +20,8 @@ class AuthProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('jwt_token');
     _loading = false;
+    // Wire token-rotation callback so mid-session FCM refreshes re-register.
+    NotificationService.onTokenRefreshed = registerFcmToken;
     // Register the FCM token now that we have a JWT (token may have arrived at app start)
     if (_token != null) {
       final fcmToken = NotificationService.lastToken;
