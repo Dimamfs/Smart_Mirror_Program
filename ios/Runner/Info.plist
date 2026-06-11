@@ -47,5 +47,7 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>We need camera access to scan your face for your smart mirror profile.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Smart Mirror uses your local network to talk to the mirror during WiFi setup and while in use.</string>
 </dict>
 </plist>

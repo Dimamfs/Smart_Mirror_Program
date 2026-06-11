@@ -2,6 +2,10 @@
     <!-- Internet access for API calls and Gmail OAuth webview -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- WiFi onboarding: join SmartMirror-Setup AP without internet capability -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
     <uses-feature android:name="android.hardware.camera" />
     <application
         android:usesCleartextTraffic="true"
