@@ -22,6 +22,7 @@ const _kSidePoseYawMin = 25.0; // ° from center for left/right capture
 const _kSidePitchMax = 20.0;
 const _kFaceHeightMin = 0.28; // face bbox height / preview height
 const _kSteadyFrames = 8; // consecutive OK frames before capture
+const _kBurstShots = 4; // still frames captured per pose for richer face descriptors
 const _kRequireBlink = true; // blink liveness check on front pose
 
 class FaceSetupScreen extends StatefulWidget {
@@ -56,6 +57,10 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
   bool _blinkDone = false;
   _BlinkPhase _blinkPhase = _BlinkPhase.awaitOpen;
 
+  bool _updateRequested = false;
+  bool get _needsEnrollment =>
+      _updateRequested || !(_selectedProfile?.hasFace ?? false);
+
   // Live guidance label
   String _guidance = 'Look straight ahead';
 
@@ -83,14 +88,13 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
       ),
     );
     _loadProfiles();
-    if (widget.isActive) _initializeCamera();
   }
 
   @override
   void didUpdateWidget(FaceSetupScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isActive && !oldWidget.isActive) {
-      _initializeCamera();
+      if (_needsEnrollment && _pose != _Pose.done) _initializeCamera();
     } else if (!widget.isActive && oldWidget.isActive) {
       final ctrl = _cameraController;
       _cameraController = null;
@@ -132,6 +136,7 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
               (profiles.isNotEmpty ? profiles.first : null);
           _isLoadingProfiles = false;
         });
+        if (widget.isActive && _needsEnrollment) _initializeCamera();
       }
     } catch (e) {
       if (mounted) {
@@ -163,7 +168,7 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
       );
       _cameraController = CameraController(
         frontCamera,
-        ResolutionPreset.medium,
+        ResolutionPreset.high,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.nv21, // Android NV21 for ML Kit
       );
@@ -340,8 +345,13 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
     }
     try {
       await ctrl.stopImageStream();
-      final XFile photo = await ctrl.takePicture();
-      _capturedPaths.add(photo.path);
+      for (int i = 0; i < _kBurstShots; i++) {
+        final XFile photo = await ctrl.takePicture();
+        _capturedPaths.add(photo.path);
+        if (i < _kBurstShots - 1) {
+          await Future.delayed(const Duration(milliseconds: 120));
+        }
+      }
 
       if (!mounted) {
         _capturing = false;
@@ -500,40 +510,44 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
           _buildProfileSelector(),
           const SizedBox(height: 20),
 
-          _buildProgressRow(),
-          const SizedBox(height: 12),
-
-          Text(
-            _guidance,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-          const SizedBox(height: 12),
-
-          _buildCameraArea(),
-
-          if (_error != null) ...[
+          if (!_needsEnrollment)
+            _buildAlreadyEnrolledCard()
+          else ...[
+            _buildProgressRow(),
             const SizedBox(height: 12),
-            Text(_error!,
-                style: const TextStyle(color: Colors.redAccent),
-                textAlign: TextAlign.center),
-          ],
 
-          const SizedBox(height: 20),
-
-          if (_pose == _Pose.done)
-            _buildDoneActions()
-          else if (!_cameraReady && _error != null)
-            ElevatedButton.icon(
-              onPressed: _resetScan,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry Camera'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-              ),
+            Text(
+              _guidance,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
+            const SizedBox(height: 12),
+
+            _buildCameraArea(),
+
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!,
+                  style: const TextStyle(color: Colors.redAccent),
+                  textAlign: TextAlign.center),
+            ],
+
+            const SizedBox(height: 20),
+
+            if (_pose == _Pose.done)
+              _buildDoneActions()
+            else if (!_cameraReady && _error != null)
+              ElevatedButton.icon(
+                onPressed: _resetScan,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry Camera'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -572,8 +586,23 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
           onChanged: _pose == _Pose.front
               ? (Profile? p) {
                   if (p == null) return;
-                  setState(() => _selectedProfile = p);
-                  _resetScan();
+                  setState(() {
+                    _selectedProfile = p;
+                    _updateRequested = false;
+                  });
+                  if (_needsEnrollment) {
+                    _resetScan();
+                  } else {
+                    final ctrl = _cameraController;
+                    _cameraController = null;
+                    if (ctrl != null) {
+                      ctrl
+                          .stopImageStream()
+                          .catchError((_) {})
+                          .then((_) => ctrl.dispose());
+                    }
+                    if (mounted) setState(() => _cameraReady = false);
+                  }
                 }
               : null,
         ),
@@ -647,13 +676,12 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
       );
 
   Widget _buildCameraArea() {
-    return SizedBox(
-      height: 280,
+    return AspectRatio(
+      aspectRatio: 3 / 4,
       child: Stack(
-        alignment: Alignment.center,
+        fit: StackFit.expand,
         children: [
           Container(
-            width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.black,
               borderRadius: BorderRadius.circular(16),
@@ -662,10 +690,11 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
             clipBehavior: Clip.hardEdge,
             child: _cameraContent(),
           ),
-          IgnorePointer(
-            child: CustomPaint(
-              size: const Size(double.infinity, 280),
-              painter: _OvalOverlayPainter(color: _overlayColor()),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _OvalOverlayPainter(color: _overlayColor()),
+              ),
             ),
           ),
         ],
@@ -707,7 +736,19 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
       return const Center(
           child: CircularProgressIndicator(color: Colors.white));
     }
-    return SizedBox.expand(child: CameraPreview(_cameraController!));
+    final preview = _cameraController!.value.previewSize;
+    if (preview == null) {
+      return const Center(child: CircularProgressIndicator(color: Colors.white));
+    }
+    return FittedBox(
+      fit: BoxFit.cover,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: preview.height, // previewSize is sensor-landscape; swap for portrait
+        height: preview.width,
+        child: CameraPreview(_cameraController!),
+      ),
+    );
   }
 
   Widget _buildDoneActions() {
@@ -729,6 +770,55 @@ class _FaceSetupScreenState extends State<FaceSetupScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildAlreadyEnrolledCard() {
+    return Card(
+      color: Colors.grey[900],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.verified_user, color: Colors.green, size: 48),
+            const SizedBox(height: 16),
+            const Text(
+              'Face setup complete',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You\'ve already registered your face for '
+              '${_selectedProfile?.name ?? 'this profile'}. '
+              'You can update it with a fresh scan anytime.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white60, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _startUpdate,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Update Face Setup'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startUpdate() async {
+    setState(() => _updateRequested = true);
+    await _resetScan();
   }
 }
 

@@ -33,6 +33,8 @@ class Profile {
   bool get hasGmail => email != null && googleSub != null;
   bool get hasSpotify => spotifyConnected;
   bool get hasMirror => mirrorId != null && mirrorId!.isNotEmpty;
+  bool get hasFace =>
+      (faceFilenames != null && faceFilenames!.isNotEmpty) || faceFilename != null;
 
   // Derives the face image URL from the runtime base URL so re-provisioning the
   // backend (QR scan / manual entry) automatically fixes this too.
