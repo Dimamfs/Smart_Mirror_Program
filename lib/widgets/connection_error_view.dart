@@ -35,8 +35,9 @@ class ConnectionErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               message ??
-                  'Make sure your phone is on the same WiFi as the mirror '
-                      'and that the mirror is switched on.',
+                  'Make sure your mirror is powered on and your phone is on the '
+                  'same network — your home WiFi, or your phone\'s hotspot '
+                  'if that\'s what the mirror uses.',
               style: const TextStyle(
                   color: Colors.white54, fontSize: 14, height: 1.5),
               textAlign: TextAlign.center,

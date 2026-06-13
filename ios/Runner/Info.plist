@@ -48,6 +48,10 @@
 	<key>NSCameraUsageDescription</key>
 	<string>We need camera access to scan your face for your smart mirror profile.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Smart Mirror uses your local network to talk to the mirror during WiFi setup and while in use.</string>
+	<string>Smart Mirror uses your local network to communicate with the mirror display.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Smart Mirror uses Bluetooth to send your WiFi credentials to the mirror so it can join your network.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Smart Mirror uses Bluetooth to connect to the mirror for initial setup.</string>
 </dict>
 </plist>
